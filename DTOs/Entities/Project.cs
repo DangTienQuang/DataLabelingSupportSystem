@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DTOs.Entities
@@ -13,15 +8,13 @@ namespace DTOs.Entities
         [Key]
         public int ProjectId { get; set; }
 
-        public int ManagerId { get; set; }
-
         [Required]
         [MaxLength(200)]
         public required string Name { get; set; }
 
         public string? Description { get; set; }
 
-        public string? Instruction { get; set; } // Hướng dẫn gán nhãn
+        public string? Instruction { get; set; }
 
         [Required]
         [MaxLength(20)]
@@ -32,9 +25,8 @@ namespace DTOs.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [ForeignKey("ManagerId")]
-        public User? Manager { get; set; }
-
+        // Navigation Properties
+        public ICollection<ProjectMember>? Members { get; set; } // All members (Managers, Annotators, etc.)
         public ICollection<LabelClass>? LabelClasses { get; set; }
         public ICollection<DataItem>? DataItems { get; set; }
     }

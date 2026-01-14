@@ -16,37 +16,59 @@ namespace DAL
         public DbSet<Annotation> Annotations { get; set; }
         public DbSet<ReviewComment> ReviewComments { get; set; }
 
+        // New Tables
+        public DbSet<ProjectMember> ProjectMembers { get; set; }
+        public DbSet<Assignment> Assignments { get; set; }
+        public DbSet<WorkflowLog> WorkflowLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // --- CẤU HÌNH ĐỂ TRÁNH LỖI MULTIPLE CASCADE PATHS ---
+            // --- CONFIGURATION ---
 
-            // 1. Ngắt cascade delete giữa LabelClass và Annotation (Sửa lỗi bạn đang gặp)
+            // 1. LabelClass - Annotation (Prevent cascade delete cycle)
             modelBuilder.Entity<Annotation>()
                 .HasOne(a => a.LabelClass)
                 .WithMany()
                 .HasForeignKey(a => a.LabelClassId)
-                .OnDelete(DeleteBehavior.Restrict); // Hoặc DeleteBehavior.NoAction
-
-            // 2. Giữ nguyên các cấu hình Restrict User trước đó để tránh vòng lặp với bảng User
-            modelBuilder.Entity<DataItem>()
-                .HasOne(d => d.Annotator)
-                .WithMany(u => u.AssignedDataItems)
-                .HasForeignKey(d => d.AnnotatorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<DataItem>()
-                .HasOne(d => d.Reviewer)
-                .WithMany(u => u.ReviewedDataItems)
-                .HasForeignKey(d => d.ReviewerId)
+            // 2. ProjectMember Configuration
+            // Prevent deleting a User from automatically deleting project history in a way that causes cycles
+            modelBuilder.Entity<ProjectMember>()
+                .HasOne(pm => pm.User)
+                .WithMany(u => u.ProjectMemberships)
+                .HasForeignKey(pm => pm.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Project>()
-                .HasOne(p => p.Manager)
-                .WithMany(u => u.ManagedProjects)
-                .HasForeignKey(p => p.ManagerId)
+            // 3. Assignment Configuration (Crucial for "User <-> DataItem" link)
+            // If you delete a User, their past assignments should probably stay (or be set null), 
+            // but Restrict is safest to prevent accidental mass deletion.
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.Assignee)
+                .WithMany(u => u.Assignments)
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Assignment>()
+                .HasOne(a => a.DataItem)
+                .WithMany(d => d.Assignments)
+                .HasForeignKey(a => a.DataItemId)
+                .OnDelete(DeleteBehavior.Cascade); // If DataItem is deleted, assignments go with it.
+
+            // 4. WorkflowLog Configuration
+            modelBuilder.Entity<WorkflowLog>()
+                .HasOne(w => w.Actor)
+                .WithMany()
+                .HasForeignKey(w => w.ActorId)
+                .OnDelete(DeleteBehavior.Restrict); // Logs should stay even if user is "deleted" (or soft deleted)
+
+            modelBuilder.Entity<WorkflowLog>()
+                .HasOne(w => w.DataItem)
+                .WithMany(d => d.WorkflowLogs)
+                .HasForeignKey(w => w.DataItemId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

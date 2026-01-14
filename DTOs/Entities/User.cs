@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DTOs.Entities
 {
@@ -25,6 +20,8 @@ namespace DTOs.Entities
         [MaxLength(100)]
         public string? Email { get; set; }
 
+        // System Level Role (e.g., "Admin", "User"). 
+        // Specific permissions are now in ProjectMembers.
         [Required]
         [MaxLength(20)]
         public required string Role { get; set; }
@@ -33,8 +30,7 @@ namespace DTOs.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties
-        public ICollection<Project>? ManagedProjects { get; set; } 
-        public ICollection<DataItem>? AssignedDataItems { get; set; } 
-        public ICollection<DataItem>? ReviewedDataItems { get; set; } 
+        public ICollection<ProjectMember>? ProjectMemberships { get; set; }
+        public ICollection<Assignment>? Assignments { get; set; } // Work assigned to this user
     }
 }
