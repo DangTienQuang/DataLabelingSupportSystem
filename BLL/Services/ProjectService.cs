@@ -4,6 +4,8 @@ using DTOs.Constants;
 using DTOs.Entities;
 using DTOs.Requests;
 using DTOs.Responses;
+using System.Text.Json;
+using System.Text;
 
 namespace BLL.Services
 {
@@ -46,7 +48,7 @@ namespace BLL.Services
                 ManagerId = project.ManagerId,
                 ManagerName = manager.FullName, 
                 ManagerEmail = manager.Email,
-                Labels = new List<string>(),   
+                Labels = new List<LabelResponse>(),
                 TotalDataItems = 0,            
                 ProcessedItems = 0
             };
@@ -101,7 +103,13 @@ namespace BLL.Services
                 ManagerId = project.ManagerId,
                 ManagerName = project.Manager?.FullName ?? "Unknown",
                 ManagerEmail = project.Manager?.Email ?? "",
-                Labels = project.LabelClasses.Select(l => l.Name).ToList(),
+                Labels = project.LabelClasses.Select(l => new LabelResponse
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Color = l.Color,
+                    GuideLine = l.GuideLine
+                }).ToList(),
                 TotalDataItems = project.DataItems.Count,
                 ProcessedItems = project.DataItems.Count(d => d.Status == "Done")
             };
@@ -145,6 +153,103 @@ namespace BLL.Services
 
             _projectRepository.Delete(project);
             await _projectRepository.SaveChangesAsync();
+        }
+
+        public async Task<byte[]> ExportProjectDataAsync(int projectId, string userId)
+        {
+            var project = await _projectRepository.GetProjectForExportAsync(projectId);
+            if (project == null) throw new Exception("Project not found");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            if (user.Role != UserRoles.Admin && project.ManagerId != userId)
+                throw new Exception("Unauthorized to export this project.");
+
+            var dataItems = project.DataItems
+                .Where(d => d.Status == "Done")
+                .Select(d => new
+                {
+                    DataItemId = d.Id,
+                    StorageUrl = d.StorageUrl,
+                    Annotations = d.Assignments
+                        .Where(a => a.Status == "Completed")
+                        .SelectMany(a => a.Annotations)
+                        .Select(an => new
+                        {
+                            ClassId = an.ClassId,
+                            ClassName = project.LabelClasses.FirstOrDefault(l => l.Id == an.ClassId)?.Name,
+                            Value = JsonDocument.Parse(an.Value).RootElement
+                        })
+                        .ToList()
+                })
+                .ToList();
+
+            var exportData = new
+            {
+                ProjectId = project.Id,
+                ProjectName = project.Name,
+                ExportedAt = DateTime.UtcNow,
+                Data = dataItems
+            };
+
+            var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+            return Encoding.UTF8.GetBytes(json);
+        }
+
+        public async Task<ProjectStatisticsResponse> GetProjectStatisticsAsync(int projectId)
+        {
+            var project = await _projectRepository.GetProjectWithStatsDataAsync(projectId);
+            if (project == null) throw new Exception("Project not found");
+
+            var allAssignments = project.DataItems.SelectMany(d => d.Assignments).ToList();
+
+            var stats = new ProjectStatisticsResponse
+            {
+                ProjectId = project.Id,
+                TotalItems = project.DataItems.Count,
+                CompletedItems = project.DataItems.Count(d => d.Status == "Done"),
+
+                TotalAssignments = allAssignments.Count,
+                PendingAssignments = allAssignments.Count(a => a.Status == "Assigned" || a.Status == "InProgress"),
+                SubmittedAssignments = allAssignments.Count(a => a.Status == "Submitted"),
+                ApprovedAssignments = allAssignments.Count(a => a.Status == "Completed"),
+                RejectedAssignments = allAssignments.Count(a => a.Status == "Rejected")
+            };
+
+            if (stats.TotalItems > 0)
+            {
+                stats.ProgressPercentage = Math.Round((decimal)stats.CompletedItems / stats.TotalItems * 100, 2);
+            }
+
+            // Annotator Performance
+            stats.AnnotatorPerformances = allAssignments
+                .GroupBy(a => a.AnnotatorId)
+                .Select(g => new AnnotatorPerformance
+                {
+                    AnnotatorId = g.Key,
+                    AnnotatorName = g.FirstOrDefault()?.Annotator.FullName ?? "Unknown",
+                    TasksAssigned = g.Count(),
+                    TasksCompleted = g.Count(a => a.Status == "Completed"),
+                    TasksRejected = g.Count(a => a.Status == "Rejected"),
+                    AverageDurationSeconds = g.Where(a => a.DurationSeconds > 0).Any()
+                        ? Math.Round(g.Where(a => a.DurationSeconds > 0).Average(a => a.DurationSeconds), 2)
+                        : 0
+                }).ToList();
+
+            // Label Distribution
+            var allAnnotations = allAssignments.SelectMany(a => a.Annotations).ToList();
+            var labelCounts = allAnnotations
+                .GroupBy(an => an.ClassId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            stats.LabelDistributions = project.LabelClasses.Select(lc => new LabelDistribution
+            {
+                ClassName = lc.Name,
+                Count = labelCounts.ContainsKey(lc.Id) ? labelCounts[lc.Id] : 0
+            }).ToList();
+
+            return stats;
         }
     }
 }

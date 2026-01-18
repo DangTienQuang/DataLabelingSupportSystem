@@ -33,5 +33,19 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
+
+        [HttpGet("project/{projectId}")]
+        public async Task<IActionResult> GetTasksForReview(int projectId)
+        {
+            try
+            {
+                var tasks = await _reviewService.GetTasksForReviewAsync(projectId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
     }
 }

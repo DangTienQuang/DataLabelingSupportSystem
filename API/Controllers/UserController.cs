@@ -59,5 +59,58 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateUser([FromBody] RegisterRequest request)
+        {
+            try
+            {
+                var user = await _userService.RegisterAsync(request.FullName, request.Email, request.Password, request.Role);
+                return Ok(new { Message = "User created successfully", UserId = user.Id });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
+        {
+            try
+            {
+                await _userService.UpdateUserAsync(id, request);
+                return Ok(new { Message = "User updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            try
+            {
+                await _userService.DeleteUserAsync(id);
+                return Ok(new { Message = "User deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@
 using DAL.Interfaces;
 using DTOs.Constants;
 using DTOs.Entities;
+using DTOs.Requests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -78,6 +79,47 @@ namespace BLL.Services
             user.PaymentInfo.TaxCode = taxCode;
 
             _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            return users.ToList();
+        }
+
+        public async Task UpdateUserAsync(string userId, UpdateUserRequest request)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            if (!string.IsNullOrEmpty(request.FullName)) user.FullName = request.FullName;
+            if (!string.IsNullOrEmpty(request.Email))
+            {
+                if (user.Email != request.Email && await _userRepository.IsEmailExistsAsync(request.Email))
+                    throw new Exception("Email already exists.");
+                user.Email = request.Email;
+            }
+            if (!string.IsNullOrEmpty(request.Role))
+            {
+                if (!UserRoles.IsValid(request.Role)) throw new Exception("Invalid role.");
+                user.Role = request.Role;
+            }
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            }
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task DeleteUserAsync(string userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            _userRepository.Delete(user);
             await _userRepository.SaveChangesAsync();
         }
 

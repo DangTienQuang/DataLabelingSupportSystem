@@ -1,4 +1,5 @@
 ﻿using DTOs.Entities;
+using DTOs.Requests;
 
 namespace BLL.Interfaces
 {
@@ -9,5 +10,10 @@ namespace BLL.Interfaces
         Task<User?> GetUserByIdAsync(string id);
         Task<bool> IsEmailExistsAsync(string email);
         Task UpdatePaymentInfoAsync(string userId, string bankName, string bankAccount, string taxCode);
+
+        // Admin methods
+        Task<List<User>> GetAllUsersAsync();
+        Task UpdateUserAsync(string userId, UpdateUserRequest request);
+        Task DeleteUserAsync(string userId);
     }
 }

@@ -17,6 +17,29 @@ namespace DAL.Repositories
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
+        public async Task<Project?> GetProjectForExportAsync(int id)
+        {
+            return await _context.Projects
+                .Include(p => p.LabelClasses)
+                .Include(p => p.DataItems)
+                    .ThenInclude(d => d.Assignments)
+                        .ThenInclude(a => a.Annotations)
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<Project?> GetProjectWithStatsDataAsync(int id)
+        {
+            return await _context.Projects
+                .Include(p => p.LabelClasses)
+                .Include(p => p.DataItems)
+                    .ThenInclude(d => d.Assignments)
+                        .ThenInclude(a => a.Annotator)
+                 .Include(p => p.DataItems)
+                    .ThenInclude(d => d.Assignments)
+                        .ThenInclude(a => a.Annotations)
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
         public async Task<List<Project>> GetProjectsByManagerIdAsync(string managerId)
         {
             return await _context.Projects

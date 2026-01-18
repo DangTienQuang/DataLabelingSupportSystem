@@ -12,7 +12,7 @@
         public string ManagerName { get; set; } = string.Empty;
         public string ManagerEmail { get; set; } = string.Empty;
 
-        public List<string> Labels { get; set; } = new List<string>();
+        public List<LabelResponse> Labels { get; set; } = new List<LabelResponse>();
         public int TotalDataItems { get; set; }
         public int ProcessedItems { get; set; }
     }

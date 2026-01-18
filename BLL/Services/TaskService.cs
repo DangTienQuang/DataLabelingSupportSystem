@@ -91,7 +91,8 @@ namespace BLL.Services
                 {
                     Id = l.Id,
                     Name = l.Name,
-                    Color = l.Color
+                    Color = l.Color,
+                    GuideLine = l.GuideLine
                 }).ToList() ?? new List<LabelResponse>(),
 
                 ExistingAnnotations = assignment.Annotations.Select(an => new

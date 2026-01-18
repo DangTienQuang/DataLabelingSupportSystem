@@ -2,6 +2,8 @@
 using DAL.Interfaces;
 using DTOs.Entities;
 using DTOs.Requests;
+using DTOs.Responses;
+using System.Text.Json;
 
 namespace BLL.Services
 {
@@ -60,6 +62,32 @@ namespace BLL.Services
 
             _assignmentRepo.Update(assignment);
             await _assignmentRepo.SaveChangesAsync();
+        }
+
+        public async Task<List<TaskResponse>> GetTasksForReviewAsync(int projectId)
+        {
+            var assignments = await _assignmentRepo.GetAssignmentsForReviewerAsync(projectId);
+
+            return assignments.Select(a => new TaskResponse
+            {
+                AssignmentId = a.Id,
+                DataItemId = a.DataItemId,
+                StorageUrl = a.DataItem?.StorageUrl ?? "",
+                ProjectName = a.Project?.Name ?? "",
+                Status = a.Status,
+                Labels = a.Project?.LabelClasses.Select(l => new LabelResponse
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Color = l.Color,
+                    GuideLine = l.GuideLine
+                }).ToList() ?? new List<LabelResponse>(),
+                ExistingAnnotations = a.Annotations.Select(an => new
+                {
+                    an.ClassId,
+                    Value = JsonDocument.Parse(an.Value).RootElement
+                }).ToList<object>()
+            }).ToList();
         }
     }
 }
