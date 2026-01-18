@@ -16,7 +16,7 @@ namespace DTOs.Entities
         [ForeignKey("ReviewerId")]
         public User? Reviewer { get; set; }
 
-        public string Decision { get; set; } = string.Empty; // Approve / Reject
+        public string Decision { get; set; } = string.Empty;
         public string? Comment { get; set; }
         public string? ErrorCategory { get; set; }
 

@@ -16,9 +16,9 @@ namespace DTOs.Entities
         [Required]
         public string StorageUrl { get; set; } = string.Empty;
 
-        public string? MetaData { get; set; } // JSON
+        public string? MetaData { get; set; }
 
-        public string Status { get; set; } = "New"; // New, Processing, Done
+        public string Status { get; set; } = "New";
 
         public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
     }

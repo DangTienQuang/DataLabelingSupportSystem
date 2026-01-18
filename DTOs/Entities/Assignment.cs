@@ -8,7 +8,6 @@ namespace DTOs.Entities
         [Key]
         public int Id { get; set; }
 
-        // --- BỔ SUNG PROJECT ID (Để query nhanh theo dự án) ---
         public int ProjectId { get; set; }
         [ForeignKey("ProjectId")]
         public virtual Project Project { get; set; } = null!;
@@ -20,10 +19,7 @@ namespace DTOs.Entities
         public string AnnotatorId { get; set; } = string.Empty;
         [ForeignKey("AnnotatorId")]
         public virtual User Annotator { get; set; } = null!;
-
-        // Đổi tên cho khớp với Service (AssignedAt -> AssignedDate)
         public DateTime AssignedDate { get; set; } = DateTime.UtcNow;
-
         public DateTime? SubmittedAt { get; set; }
         public int DurationSeconds { get; set; }
 

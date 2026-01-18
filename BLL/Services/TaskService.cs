@@ -121,13 +121,10 @@ namespace BLL.Services
         {
             var assignment = await _assignmentRepo.GetAssignmentWithDetailsAsync(request.AssignmentId);
             if (assignment == null) throw new Exception("Task not found");
-
             if (assignment.AnnotatorId != annotatorId)
                 throw new Exception("You are not authorized to submit this task.");
-
             if (assignment.Status == "Completed")
                 throw new Exception("This task is already completed.");
-
             if (assignment.Annotations != null && assignment.Annotations.Any())
             {
                 foreach (var oldAnno in assignment.Annotations)
@@ -135,7 +132,6 @@ namespace BLL.Services
                     _annotationRepo.Delete(oldAnno);
                 }
             }
-
             foreach (var item in request.Annotations)
             {
                 await _annotationRepo.AddAsync(new Annotation
@@ -145,9 +141,8 @@ namespace BLL.Services
                     Value = item.ValueJson
                 });
             }
-
             assignment.Status = "Submitted";
-
+            assignment.SubmittedAt = DateTime.UtcNow;
             _assignmentRepo.Update(assignment);
             await _assignmentRepo.SaveChangesAsync();
         }

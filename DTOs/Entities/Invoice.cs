@@ -30,6 +30,6 @@ namespace DTOs.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
-        public string Status { get; set; } = "Pending"; // Pending, Paid
+        public string Status { get; set; } = "Pending";
     }
 }
