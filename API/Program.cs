@@ -4,7 +4,7 @@ using BLL.Services;
 using DAL;
 using DAL.Interfaces;
 using DAL.Repositories;
-using DTOs.Entities; // <-- Thêm cái này để dùng ReviewLog, Annotation...
+using DTOs.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -12,16 +12,10 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==================================================================
-// 1. DATABASE CONFIGURATION
-// ==================================================================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// ==================================================================
-// 2. JWT AUTHENTICATION CONFIGURATION
-// ==================================================================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 
@@ -46,35 +40,24 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// ==================================================================
-// 3. DEPENDENCY INJECTION (DI) - ĐĂNG KÝ SERVICE & REPO
-// ==================================================================
 
-// A. Repositories
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>)); // Generic
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 
-// --- CÁC REPO MỚI (Bắt buộc phải có) ---
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
-builder.Services.AddScoped<IRepository<Annotation>, Repository<Annotation>>(); // Dùng Generic cho Annotation
-builder.Services.AddScoped<IRepository<DataItem>, Repository<DataItem>>();     // Dùng Generic cho DataItem
-builder.Services.AddScoped<IRepository<ReviewLog>, Repository<ReviewLog>>();   // Dùng Generic cho ReviewLog
+builder.Services.AddScoped<IRepository<Annotation>, Repository<Annotation>>();
+builder.Services.AddScoped<IRepository<DataItem>, Repository<DataItem>>();
+builder.Services.AddScoped<IRepository<ReviewLog>, Repository<ReviewLog>>();
 
-// B. Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 
-// --- CÁC SERVICE MỚI (Bắt buộc phải có) ---
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
-
-// ==================================================================
-// 4. CONTROLLERS & SWAGGER CONFIGURATION
-// ==================================================================
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -115,9 +98,11 @@ builder.Services.AddSwaggerGen(option =>
 
 var app = builder.Build();
 
-// ==================================================================
-// 5. MIDDLEWARE PIPELINE
-// ==================================================================
+using (var scope = app.Services.CreateScope())
+{
+    await API.DataSeeder.SeedUsersAsync(scope.ServiceProvider);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

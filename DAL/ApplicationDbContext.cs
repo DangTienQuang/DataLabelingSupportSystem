@@ -24,48 +24,56 @@ namespace DAL
         {
             base.OnModelCreating(modelBuilder);
 
+            // 1. Cấu hình Project - Manager
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.Manager)
                 .WithMany(u => u.ManagedProjects)
                 .HasForeignKey(p => p.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 2. Cấu hình Assignment - Annotator
             modelBuilder.Entity<Assignment>()
                 .HasOne(a => a.Annotator)
                 .WithMany(u => u.Assignments)
                 .HasForeignKey(a => a.AnnotatorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 3. Cấu hình ReviewLog - Reviewer
             modelBuilder.Entity<ReviewLog>()
                 .HasOne(r => r.Reviewer)
                 .WithMany(u => u.ReviewsGiven)
                 .HasForeignKey(r => r.ReviewerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 4. CẤU HÌNH INVOICE (ĐÃ CẬP NHẬT CHO KHỚP ENTITY MỚI)
             modelBuilder.Entity<Invoice>()
-                .HasOne(i => i.Annotator)
+                .HasOne(i => i.User)        // Sửa Annotator -> User
                 .WithMany(u => u.Invoices)
-                .HasForeignKey(i => i.AnnotatorId)
+                .HasForeignKey(i => i.UserId) // Sửa AnnotatorId -> UserId
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 5. Cấu hình UserProjectStat
             modelBuilder.Entity<UserProjectStat>()
                 .HasOne(s => s.User)
                 .WithMany(u => u.ProjectStats)
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 6. Cấu hình Assignment - Project (Tránh vòng lặp Cascade Delete)
             modelBuilder.Entity<Assignment>()
                 .HasOne(a => a.Project)
                 .WithMany()
                 .HasForeignKey(a => a.ProjectId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
 
+            // 7. Cấu hình Annotation - LabelClass
             modelBuilder.Entity<Annotation>()
                  .HasOne(a => a.LabelClass)
                  .WithMany()
-                 .HasForeignKey(a => a.ClassId) 
+                 .HasForeignKey(a => a.ClassId)
                  .OnDelete(DeleteBehavior.Restrict);
 
+            // 8. Cấu hình độ chính xác số thập phân (Decimal Precision)
             modelBuilder.Entity<Project>()
                 .Property(p => p.PricePerLabel)
                 .HasPrecision(18, 2);
@@ -74,8 +82,9 @@ namespace DAL
                 .Property(p => p.TotalBudget)
                 .HasPrecision(18, 2);
 
+            // Cập nhật tên cột cho Invoice
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.UnitPriceSnapshot)
+                .Property(i => i.UnitPrice) // Sửa UnitPriceSnapshot -> UnitPrice
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()

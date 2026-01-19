@@ -3,6 +3,9 @@ namespace DTOs.Responses
     public class ProjectStatisticsResponse
     {
         public int ProjectId { get; set; }
+
+        public string ProjectName { get; set; } = string.Empty;
+
         public int TotalItems { get; set; }
         public int CompletedItems { get; set; }
         public decimal ProgressPercentage { get; set; }
@@ -13,8 +16,10 @@ namespace DTOs.Responses
         public int ApprovedAssignments { get; set; }
         public int RejectedAssignments { get; set; }
 
-        public List<AnnotatorPerformance> AnnotatorPerformances { get; set; } = new List<AnnotatorPerformance>();
-        public List<LabelDistribution> LabelDistributions { get; set; } = new List<LabelDistribution>();
+        public decimal CostIncurred { get; set; }
+
+        public List<AnnotatorPerformance> AnnotatorPerformances { get; set; } = new();
+        public List<LabelDistribution> LabelDistributions { get; set; } = new();
     }
 
     public class AnnotatorPerformance

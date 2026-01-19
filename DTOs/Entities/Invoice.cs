@@ -8,28 +8,27 @@ namespace DTOs.Entities
         [Key]
         public int Id { get; set; }
 
-        public string AnnotatorId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
 
-        [ForeignKey("AnnotatorId")]
-        public virtual User Annotator { get; set; } = null!;
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
 
         public int ProjectId { get; set; }
-
         [ForeignKey("ProjectId")]
         public virtual Project Project { get; set; } = null!;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime PeriodStart { get; set; }
-        public DateTime PeriodEnd { get; set; }
-
-        public int TotalValidLabels { get; set; }
+        public int TotalLabels { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal UnitPriceSnapshot { get; set; }
+        public decimal UnitPrice { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+
         public string Status { get; set; } = "Pending";
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }

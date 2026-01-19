@@ -13,12 +13,21 @@ namespace BLL.Services
     {
         private readonly IProjectRepository _projectRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IRepository<UserProjectStat> _statsRepo;
+        private readonly IRepository<Invoice> _invoiceRepo;
 
-        public ProjectService(IProjectRepository projectRepository, IUserRepository userRepository)
+        public ProjectService(
+            IProjectRepository projectRepository,
+            IUserRepository userRepository,
+            IRepository<UserProjectStat> statsRepo,
+            IRepository<Invoice> invoiceRepo)
         {
             _projectRepository = projectRepository;
             _userRepository = userRepository;
+            _statsRepo = statsRepo;
+            _invoiceRepo = invoiceRepo;
         }
+
         public async Task<ProjectDetailResponse> CreateProjectAsync(string managerId, CreateProjectRequest request)
         {
             var manager = await _userRepository.GetByIdAsync(managerId);
@@ -34,10 +43,22 @@ namespace BLL.Services
                 PricePerLabel = request.PricePerLabel,
                 TotalBudget = request.TotalBudget,
                 Deadline = request.Deadline,
-
+                CreatedDate = DateTime.UtcNow
             };
+
+            foreach (var label in request.LabelClasses)
+            {
+                project.LabelClasses.Add(new LabelClass
+                {
+                    Name = label.Name,
+                    Color = label.Color,
+                    GuideLine = label.GuideLine
+                });
+            }
+
             await _projectRepository.AddAsync(project);
             await _projectRepository.SaveChangesAsync();
+
             return new ProjectDetailResponse
             {
                 Id = project.Id,
@@ -46,10 +67,16 @@ namespace BLL.Services
                 TotalBudget = project.TotalBudget,
                 Deadline = project.Deadline,
                 ManagerId = project.ManagerId,
-                ManagerName = manager.FullName, 
+                ManagerName = manager.FullName,
                 ManagerEmail = manager.Email,
-                Labels = new List<LabelResponse>(),
-                TotalDataItems = 0,            
+                Labels = project.LabelClasses.Select(l => new LabelResponse
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Color = l.Color,
+                    GuideLine = l.GuideLine
+                }).ToList(),
+                TotalDataItems = 0,
                 ProcessedItems = 0
             };
         }
@@ -57,7 +84,6 @@ namespace BLL.Services
         public async Task<List<ProjectSummaryResponse>> GetAssignedProjectsAsync(string annotatorId)
         {
             var projects = await _projectRepository.GetProjectsByAnnotatorAsync(annotatorId);
-
             return projects.Select(p => new ProjectSummaryResponse
             {
                 Id = p.Id,
@@ -80,7 +106,8 @@ namespace BLL.Services
                 {
                     StorageUrl = url,
                     Status = "New",
-                    MetaData = "{}"
+                    MetaData = "{}",
+                    UploadedDate = DateTime.UtcNow
                 });
             }
 
@@ -155,6 +182,34 @@ namespace BLL.Services
             await _projectRepository.SaveChangesAsync();
         }
 
+        public async Task GenerateInvoicesAsync(int projectId)
+        {
+            var project = await _projectRepository.GetByIdAsync(projectId);
+            if (project == null) throw new Exception("Project not found");
+            var allStats = await _statsRepo.GetAllAsync();
+            var projectStats = allStats.Where(s => s.ProjectId == projectId).ToList();
+
+            foreach (var stat in projectStats)
+            {
+                if (stat.EstimatedEarnings > 0)
+                {
+                    var invoice = new Invoice
+                    {
+                        UserId = stat.UserId,
+                        ProjectId = projectId,
+                        TotalLabels = stat.TotalApproved,
+                        UnitPrice = project.PricePerLabel,
+                        TotalAmount = stat.EstimatedEarnings,
+                        StartDate = DateTime.UtcNow.AddMonths(-1),
+                        EndDate = DateTime.UtcNow,
+                        Status = "Pending",
+                        CreatedDate = DateTime.UtcNow
+                    };
+                    await _invoiceRepo.AddAsync(invoice);
+                }
+            }
+            await _invoiceRepo.SaveChangesAsync();
+        }
         public async Task<byte[]> ExportProjectDataAsync(int projectId, string userId)
         {
             var project = await _projectRepository.GetProjectForExportAsync(projectId);
@@ -202,11 +257,15 @@ namespace BLL.Services
             var project = await _projectRepository.GetProjectWithStatsDataAsync(projectId);
             if (project == null) throw new Exception("Project not found");
 
+            var allStats = await _statsRepo.GetAllAsync();
+            var moneyStats = allStats.Where(s => s.ProjectId == projectId).ToList();
+
             var allAssignments = project.DataItems.SelectMany(d => d.Assignments).ToList();
 
             var stats = new ProjectStatisticsResponse
             {
                 ProjectId = project.Id,
+                ProjectName = project.Name,
                 TotalItems = project.DataItems.Count,
                 CompletedItems = project.DataItems.Count(d => d.Status == "Done"),
 
@@ -222,22 +281,23 @@ namespace BLL.Services
                 stats.ProgressPercentage = Math.Round((decimal)stats.CompletedItems / stats.TotalItems * 100, 2);
             }
 
-            // Annotator Performance
             stats.AnnotatorPerformances = allAssignments
                 .GroupBy(a => a.AnnotatorId)
-                .Select(g => new AnnotatorPerformance
+                .Select(g =>
                 {
-                    AnnotatorId = g.Key,
-                    AnnotatorName = g.FirstOrDefault()?.Annotator.FullName ?? "Unknown",
-                    TasksAssigned = g.Count(),
-                    TasksCompleted = g.Count(a => a.Status == "Completed"),
-                    TasksRejected = g.Count(a => a.Status == "Rejected"),
-                    AverageDurationSeconds = g.Where(a => a.DurationSeconds > 0).Any()
-                        ? Math.Round(g.Where(a => a.DurationSeconds > 0).Average(a => a.DurationSeconds), 2)
-                        : 0
+                    var userMoneyStat = moneyStats.FirstOrDefault(m => m.UserId == g.Key);
+
+                    return new AnnotatorPerformance
+                    {
+                        AnnotatorId = g.Key,
+                        AnnotatorName = g.FirstOrDefault()?.Annotator.FullName ?? "Unknown",
+                        TasksAssigned = g.Count(),
+                        TasksCompleted = g.Count(a => a.Status == "Completed"),
+                        TasksRejected = g.Count(a => a.Status == "Rejected"),
+                        AverageDurationSeconds = 0
+                    };
                 }).ToList();
 
-            // Label Distribution
             var allAnnotations = allAssignments.SelectMany(a => a.Annotations).ToList();
             var labelCounts = allAnnotations
                 .GroupBy(an => an.ClassId)

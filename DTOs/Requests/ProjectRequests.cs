@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http; // <-- Import thư viện này (hết báo lỗi)
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DTOs.Requests
 {
@@ -7,14 +6,12 @@ namespace DTOs.Requests
     {
         [Required]
         public string Name { get; set; } = string.Empty;
-
-        [Range(0, double.MaxValue)]
+        public string Description { get; set; } = string.Empty;
         public decimal PricePerLabel { get; set; }
-
-        [Range(0, double.MaxValue)]
         public decimal TotalBudget { get; set; }
-
         public DateTime Deadline { get; set; }
+        public string AllowGeometryTypes { get; set; } = "Rectangle";
+        public List<LabelRequest> LabelClasses { get; set; } = new List<LabelRequest>();
     }
 
     public class UpdateProjectRequest
@@ -25,14 +22,16 @@ namespace DTOs.Requests
         public DateTime Deadline { get; set; }
     }
 
+    public class LabelRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Color { get; set; } = "#000000";
+        public string GuideLine { get; set; } = string.Empty;
+    }
+
     public class ImportDataRequest
     {
-        [Required]
         public List<string> StorageUrls { get; set; } = new List<string>();
     }
-    public class UploadDataRequest
-    {
-        [Required]
-        public List<IFormFile> Files { get; set; } = new List<IFormFile>();
-    }
+
 }

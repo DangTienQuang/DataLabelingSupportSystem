@@ -24,13 +24,9 @@ namespace API.Controllers
             try
             {
                 var managerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(managerId)) return Unauthorized(new { Message = "Invalid token" });
 
-                if (string.IsNullOrEmpty(managerId))
-                {
-                    return Unauthorized(new { Message = "Invalid token" });
-                }
                 var project = await _projectService.CreateProjectAsync(managerId, request);
-
                 return Ok(new { Message = "Project created successfully", ProjectId = project.Id });
             }
             catch (Exception ex)
@@ -41,25 +37,20 @@ namespace API.Controllers
 
         [HttpPost("{id}/upload-direct")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> UploadDataDirect(int id, [FromForm] UploadDataRequest request)
+        public async Task<IActionResult> UploadDataDirect(int id, [FromForm] List<IFormFile> files) 
         {
             var urls = new List<string>();
-
             try
             {
                 var folderName = Path.Combine("wwwroot", "uploads", $"project-{id}");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
 
-                if (!Directory.Exists(pathToSave))
-                {
-                    Directory.CreateDirectory(pathToSave);
-                }
+                if (!Directory.Exists(pathToSave)) Directory.CreateDirectory(pathToSave);
 
-                foreach (var file in request.Files)
+                foreach (var file in files)
                 {
                     if (file.Length > 0)
                     {
-
                         var fileName = $"{DateTime.Now.Ticks}_{file.FileName}";
                         var fullPath = Path.Combine(pathToSave, fileName);
 
@@ -90,7 +81,6 @@ namespace API.Controllers
         {
             var projectDto = await _projectService.GetProjectDetailsAsync(id);
             if (projectDto == null) return NotFound(new { Message = "Project not found" });
-
             return Ok(projectDto);
         }
 
@@ -161,7 +151,6 @@ namespace API.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
             try
             {
                 var fileContent = await _projectService.ExportProjectDataAsync(id, userId);
@@ -184,6 +173,21 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/invoices/generate")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<IActionResult> GenerateInvoices(int id)
+        {
+            try
+            {
+                await _projectService.GenerateInvoicesAsync(id);
+                return Ok(new { Message = "Invoices generated successfully based on current progress." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
             }
         }
     }
