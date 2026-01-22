@@ -100,6 +100,13 @@ builder.Services.AddSwaggerGen(option =>
     {
         option.IncludeXmlComments(xmlPath);
     }
+
+    var dtoXmlFile = "DTOs.xml";
+    var dtoXmlPath = Path.Combine(AppContext.BaseDirectory, dtoXmlFile);
+    if (File.Exists(dtoXmlPath))
+    {
+        option.IncludeXmlComments(dtoXmlPath);
+    }
 });
 
 var app = builder.Build();

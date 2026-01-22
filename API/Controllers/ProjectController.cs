@@ -1,11 +1,15 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using DTOs.Requests;
+using DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace API.Controllers
 {
+    /// <summary>
+    /// Controller for managing projects.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -18,7 +22,18 @@ namespace API.Controllers
             _projectService = projectService;
         }
 
+        /// <summary>
+        /// Creates a new project.
+        /// </summary>
+        /// <param name="request">The project creation request.</param>
+        /// <returns>A confirmation message and the new project's ID.</returns>
+        /// <response code="200">Project created successfully.</response>
+        /// <response code="400">If the creation fails.</response>
+        /// <response code="401">If the user is not authenticated.</response>
         [HttpPost]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(object), 401)]
         public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest request)
         {
             try
@@ -35,8 +50,18 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Uploads data files directly to a project.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <param name="files">The list of files to upload.</param>
+        /// <returns>A confirmation message and the URLs of uploaded files.</returns>
+        /// <response code="200">Files uploaded successfully.</response>
+        /// <response code="400">If upload fails.</response>
         [HttpPost("{id}/upload-direct")]
         [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> UploadDataDirect(int id, [FromForm] List<IFormFile> files) 
         {
             var urls = new List<string>();
@@ -76,7 +101,16 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Gets detailed information about a project.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <returns>The project details.</returns>
+        /// <response code="200">Returns project details.</response>
+        /// <response code="404">If the project is not found.</response>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ProjectDetailResponse), 200)]
+        [ProducesResponseType(typeof(object), 404)]
         public async Task<IActionResult> GetProject(int id)
         {
             var projectDto = await _projectService.GetProjectDetailsAsync(id);
@@ -84,7 +118,17 @@ namespace API.Controllers
             return Ok(projectDto);
         }
 
+        /// <summary>
+        /// Imports data items into a project from URLs.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <param name="request">The import request containing URLs.</param>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Items imported successfully.</response>
+        /// <response code="400">If import fails.</response>
         [HttpPost("{id}/import-data")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> ImportData(int id, [FromBody] ImportDataRequest request)
         {
             try
@@ -98,7 +142,15 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Gets projects assigned to the current annotator.
+        /// </summary>
+        /// <returns>A list of projects assigned to the user.</returns>
+        /// <response code="200">Returns list of projects.</response>
+        /// <response code="401">If user is unauthorized.</response>
         [HttpGet("annotator/assigned")]
+        [ProducesResponseType(typeof(IEnumerable<ProjectSummaryResponse>), 200)]
+        [ProducesResponseType(typeof(void), 401)]
         public async Task<IActionResult> GetAssignedProjects()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -108,7 +160,15 @@ namespace API.Controllers
             return Ok(projects);
         }
 
+        /// <summary>
+        /// Gets projects managed by the current user (Manager).
+        /// </summary>
+        /// <returns>A list of projects managed by the user.</returns>
+        /// <response code="200">Returns list of projects.</response>
+        /// <response code="401">If user is unauthorized.</response>
         [HttpGet("manager/me")]
+        [ProducesResponseType(typeof(IEnumerable<ProjectSummaryResponse>), 200)]
+        [ProducesResponseType(typeof(void), 401)]
         public async Task<IActionResult> GetMyProjects()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -118,7 +178,17 @@ namespace API.Controllers
             return Ok(projects);
         }
 
+        /// <summary>
+        /// Updates a project.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project to update.</param>
+        /// <param name="request">The update request details.</param>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Project updated successfully.</response>
+        /// <response code="400">If update fails.</response>
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> UpdateProject(int id, [FromBody] UpdateProjectRequest request)
         {
             try
@@ -132,7 +202,16 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a project.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project to delete.</param>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Project deleted successfully.</response>
+        /// <response code="400">If deletion fails.</response>
         [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> DeleteProject(int id)
         {
             try
@@ -146,7 +225,18 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Exports project data (annotations) as a JSON file.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <returns>A JSON file containing project export data.</returns>
+        /// <response code="200">Returns the export file.</response>
+        /// <response code="400">If export fails.</response>
+        /// <response code="401">If user is unauthorized.</response>
         [HttpGet("{id}/export")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(void), 401)]
         public async Task<IActionResult> ExportProject(int id)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -162,7 +252,16 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Gets statistics for a project.
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <returns>The project statistics.</returns>
+        /// <response code="200">Returns project statistics.</response>
+        /// <response code="400">If retrieval fails.</response>
         [HttpGet("{id}/stats")]
+        [ProducesResponseType(typeof(ProjectStatisticsResponse), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> GetProjectStats(int id)
         {
             try
@@ -176,8 +275,17 @@ namespace API.Controllers
             }
         }
 
+        /// <summary>
+        /// Generates invoices for a project based on progress (Admin/Manager only).
+        /// </summary>
+        /// <param name="id">The unique identifier of the project.</param>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Invoices generated successfully.</response>
+        /// <response code="400">If generation fails.</response>
         [HttpPost("{id}/invoices/generate")]
         [Authorize(Roles = "Manager,Admin")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> GenerateInvoices(int id)
         {
             try
