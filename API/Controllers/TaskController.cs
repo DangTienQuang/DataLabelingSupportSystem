@@ -1,4 +1,5 @@
 ﻿using BLL.Interfaces;
+using DTOs.Constants;
 using DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace API.Controllers
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly IProjectService _projectService;
 
-        public TaskController(ITaskService taskService)
+        public TaskController(ITaskService taskService, IProjectService projectService)
         {
             _taskService = taskService;
+            _projectService = projectService;
         }
 
         [HttpPost("assign")]
@@ -33,9 +36,14 @@ namespace API.Controllers
         public async Task<IActionResult> GetMyStats()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            // Bạn cần thêm hàm này vào Interface ITaskService trước
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (role == UserRoles.Manager || role == UserRoles.Admin)
+            {
+                var managerStats = await _projectService.GetManagerStatsAsync(userId);
+                return Ok(managerStats);
+            }
             var stats = await _taskService.GetAnnotatorStatsAsync(userId);
             return Ok(stats);
         }

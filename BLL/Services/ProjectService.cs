@@ -343,5 +343,24 @@ namespace BLL.Services
 
             return stats;
         }
+
+        public async Task<ManagerStatsResponse> GetManagerStatsAsync(string managerId)
+        {
+            var projects = await _projectRepository.GetProjectsByManagerIdAsync(managerId);
+            var stats = new ManagerStatsResponse
+            {
+                TotalProjects = projects.Count,
+                ActiveProjects = projects.Count(p => p.Deadline >= DateTime.UtcNow),
+                TotalBudget = projects.Sum(p => p.TotalBudget),
+                TotalDataItems = projects.Sum(p => p.DataItems.Count),
+                TotalMembers = projects.SelectMany(p => p.DataItems)
+                                       .SelectMany(d => d.Assignments)
+                                       .Select(a => a.AnnotatorId)
+                                       .Distinct()
+                                       .Count()
+            };
+
+            return stats;
+        }
     }
 }

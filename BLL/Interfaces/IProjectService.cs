@@ -9,7 +9,7 @@ namespace BLL.Interfaces
         Task<List<ProjectSummaryResponse>> GetAssignedProjectsAsync(string annotatorId);
         Task ImportDataItemsAsync(int projectId, List<string> storageUrls);
         Task<ProjectDetailResponse?> GetProjectDetailsAsync(int projectId);
-
+        Task<ManagerStatsResponse> GetManagerStatsAsync(string managerId);
         Task<List<ProjectSummaryResponse>> GetProjectsByManagerAsync(string managerId);
         Task UpdateProjectAsync(int projectId, UpdateProjectRequest request);
         Task DeleteProjectAsync(int projectId);

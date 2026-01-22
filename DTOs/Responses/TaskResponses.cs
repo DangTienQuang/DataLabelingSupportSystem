@@ -22,4 +22,12 @@
         public int Rejected { get; set; }
         public int Completed { get; set; }
     }
+    public class ManagerStatsResponse
+    {
+        public int TotalProjects { get; set; }   
+        public int ActiveProjects { get; set; }    
+        public int TotalDataItems { get; set; }     
+        public decimal TotalBudget { get; set; }    
+        public int TotalMembers { get; set; }  
+    }
 }
