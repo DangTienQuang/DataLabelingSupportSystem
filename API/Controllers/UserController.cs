@@ -90,9 +90,7 @@ namespace API.Controllers
         /// <response code="200">Returns list of users.</response>
         /// <response code="401">If user is unauthorized or not an Admin.</response>
         [HttpGet]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(IEnumerable<object>), 200)]
-        [ProducesResponseType(typeof(void), 401)]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _userService.GetAllUsersAsync();
