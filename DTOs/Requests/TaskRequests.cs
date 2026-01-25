@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DTOs.Requests
 {
@@ -29,22 +29,18 @@ namespace DTOs.Requests
         public int Quantity { get; set; }
     }
 
-    /// <summary>
-    /// Request model for submitting annotations for an assignment.
-    /// </summary>
     public class SubmitAnnotationRequest
     {
-        /// <summary>
-        /// The unique identifier of the assignment.
-        /// </summary>
-        /// <example>202</example>
         [Required]
         public int AssignmentId { get; set; }
+        public string DataJSON { get; set; } = string.Empty;
+ 
+    }
 
-        /// <summary>
-        /// A list of annotation details containing the label class and annotation value.
-        /// </summary>
-        public List<AnnotationDetail> Annotations { get; set; } = new List<AnnotationDetail>();
+    public class AnnotationItem
+    {
+        public int LabelClassId { get; set; }
+        public string ValueJson { get; set; } = string.Empty;
     }
 
     /// <summary>

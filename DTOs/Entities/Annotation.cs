@@ -7,13 +7,16 @@ namespace DTOs.Entities
     {
         [Key]
         public int Id { get; set; }
+
         public int AssignmentId { get; set; }
         [ForeignKey("AssignmentId")]
-        public virtual Assignment Assignment { get; set; } = null!;
-        public int ClassId { get; set; }
-        [ForeignKey("ClassId")]
-        public virtual LabelClass LabelClass { get; set; } = null!;
-        [Required]
-        public string Value { get; set; } = "{}";
+        public virtual Assignment? Assignment { get; set; }
+
+        public string DataJSON { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public int? ClassId { get; set; }
+        public string? Value { get; set; }
     }
 }

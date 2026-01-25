@@ -45,11 +45,11 @@ namespace DAL
                 .HasForeignKey(r => r.ReviewerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 4. CẤU HÌNH INVOICE (ĐÃ CẬP NHẬT CHO KHỚP ENTITY MỚI)
+            // 4. CẤU HÌNH INVOICE
             modelBuilder.Entity<Invoice>()
-                .HasOne(i => i.User)        // Sửa Annotator -> User
+                .HasOne(i => i.User)
                 .WithMany(u => u.Invoices)
-                .HasForeignKey(i => i.UserId) // Sửa AnnotatorId -> UserId
+                .HasForeignKey(i => i.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 5. Cấu hình UserProjectStat
@@ -59,21 +59,14 @@ namespace DAL
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 6. Cấu hình Assignment - Project (Tránh vòng lặp Cascade Delete)
+            // 6. Cấu hình Assignment - Project
             modelBuilder.Entity<Assignment>()
                 .HasOne(a => a.Project)
                 .WithMany()
                 .HasForeignKey(a => a.ProjectId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // 7. Cấu hình Annotation - LabelClass
-            modelBuilder.Entity<Annotation>()
-                 .HasOne(a => a.LabelClass)
-                 .WithMany()
-                 .HasForeignKey(a => a.ClassId)
-                 .OnDelete(DeleteBehavior.Restrict);
-
-            // 8. Cấu hình độ chính xác số thập phân (Decimal Precision)
+            // 8. Cấu hình độ chính xác số thập phân
             modelBuilder.Entity<Project>()
                 .Property(p => p.PricePerLabel)
                 .HasPrecision(18, 2);
@@ -82,9 +75,8 @@ namespace DAL
                 .Property(p => p.TotalBudget)
                 .HasPrecision(18, 2);
 
-            // Cập nhật tên cột cho Invoice
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.UnitPrice) // Sửa UnitPriceSnapshot -> UnitPrice
+                .Property(i => i.UnitPrice)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()
