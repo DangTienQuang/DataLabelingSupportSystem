@@ -14,30 +14,57 @@ namespace API
             {
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-                // --- 1. SEED USERS ---
+                // --- 1. SEED USERS (ĐỦ 4 ROLES: Admin, Manager, Reviewer, Annotator) ---
 
-                var managerId = "11111111-1111-1111-1111-111111111111"; // ID Cố định để FE không bị lỗi
-
-                // Hash mật khẩu 123456
+                // Mật khẩu chung: 123456
                 var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
 
-                var managerUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "Manager@gmail.com");
-                if (managerUser == null)
+                // A. TẠO ADMIN (Quản trị hệ thống)
+                var adminId = "00000000-0000-0000-0000-000000000000"; // ID Vip
+                if (!await context.Users.AnyAsync(u => u.Email == "Admin@gmail.com"))
                 {
-                    managerUser = new User
+                    context.Users.Add(new User
+                    {
+                        Id = adminId,
+                        Email = "Admin@gmail.com",
+                        FullName = "System Administrator",
+                        Role = "Admin", // Role Admin
+                        PasswordHash = defaultPasswordHash,
+                        IsActive = true
+                    });
+                }
+
+                // B. TẠO MANAGER (Quản lý dự án)
+                var managerId = "11111111-1111-1111-1111-111111111111";
+                if (!await context.Users.AnyAsync(u => u.Email == "Manager@gmail.com"))
+                {
+                    context.Users.Add(new User
                     {
                         Id = managerId,
                         Email = "Manager@gmail.com",
-                        FullName = "Manager Boss",
-                        Role = UserRoles.Manager,
+                        FullName = "Project Manager",
+                        Role = "Manager", // Role Manager
                         PasswordHash = defaultPasswordHash,
                         IsActive = true
-                        // Đã xóa các trường UserName, NormalizedEmail... gây lỗi
-                    };
-                    context.Users.Add(managerUser);
+                    });
                 }
 
-                // Tạo Annotators
+                // C. TẠO REVIEWER (Người kiểm duyệt)
+                var reviewerId = "33333333-3333-3333-3333-333333333333";
+                if (!await context.Users.AnyAsync(u => u.Email == "Reviewer@gmail.com"))
+                {
+                    context.Users.Add(new User
+                    {
+                        Id = reviewerId,
+                        Email = "Reviewer@gmail.com",
+                        FullName = "Senior Reviewer",
+                        Role = "Reviewer", // Role Reviewer
+                        PasswordHash = defaultPasswordHash,
+                        IsActive = true
+                    });
+                }
+
+                // D. TẠO ANNOTATORS (Nhân viên gán nhãn)
                 var annotators = new List<User>();
                 for (int i = 1; i <= 5; i++)
                 {
@@ -52,7 +79,7 @@ namespace API
                             Id = staffId,
                             Email = email,
                             FullName = $"Staff Annotator {i}",
-                            Role = UserRoles.Annotator,
+                            Role = "Annotator", // Role Annotator
                             PasswordHash = defaultPasswordHash,
                             IsActive = true
                         };
@@ -76,51 +103,52 @@ namespace API
                     {
                         var project = new Project
                         {
-                            Name = $"Dự án Gán Nhãn Xe Hơi {p}",
-                            Description = "Dự án test dữ liệu cho FE team.",
-                            ManagerId = managerUser.Id,
+                            Name = $"Project {p}: Nhận diện xe cộ",
+                            Description = "Dự án mẫu để test luồng Annotation & Review.",
+                            ManagerId = managerId, // Manager quản lý
                             CreatedDate = DateTime.UtcNow,
                             StartDate = DateTime.UtcNow,
                             EndDate = DateTime.UtcNow.AddDays(30),
-                            PricePerLabel = 1000 + (p * 100),
+                            PricePerLabel = 1000,
                             TotalBudget = 1000000,
-                            Deadline = DateTime.UtcNow.AddDays(10 + p),
+                            Deadline = DateTime.UtcNow.AddDays(10),
                             AllowGeometryTypes = "Rectangle"
                         };
 
-                        var labels = new List<LabelClass>
+                        // Label Classes
+                        project.LabelClasses = new List<LabelClass>
                         {
-                            new LabelClass { Name = "Car", Color = "#FF0000", GuideLine = "Vẽ bao quanh xe" },
-                            new LabelClass { Name = "Bike", Color = "#00FF00", GuideLine = "Vẽ bao quanh xe đạp" },
-                            new LabelClass { Name = "Bus", Color = "#0000FF", GuideLine = "Vẽ xe buýt" }
+                            new LabelClass { Name = "Car", Color = "#FF0000" },
+                            new LabelClass { Name = "Bike", Color = "#00FF00" }
                         };
-                        project.LabelClasses = labels;
 
+                        // Tạo 10 ảnh
                         var dataItems = new List<DataItem>();
                         for (int d = 1; d <= 10; d++)
                         {
                             dataItems.Add(new DataItem
                             {
-                                StorageUrl = $"https://via.placeholder.com/600x400?text=Project{p}_Image{d}",
+                                StorageUrl = $"https://via.placeholder.com/600x400?text=Img_{d}",
                                 Status = "New",
-                                UploadedDate = DateTime.UtcNow,
-                                MetaData = "{}"
+                                UploadedDate = DateTime.UtcNow
                             });
                         }
 
-                        // Giao việc
+                        // Giao việc & Tạo Review Log
                         int staffIndex = 0;
                         for (int k = 0; k < 8; k++)
                         {
                             var item = dataItems[k];
-                            item.Status = "Assigned";
+                            // Logic trạng thái để test thanh tiến độ
+                            var status = "Assigned";
+                            if (k == 0 || k == 1) status = "Approved";  // Đã xong
+                            else if (k == 2 || k == 3) status = "Submitted"; // Chờ review
+                            else if (k == 4) status = "Rejected";   // Bị từ chối
+                            else if (k == 5) status = "InProgress"; // Đang làm
+
+                            item.Status = status;
 
                             var assignedStaff = annotators[staffIndex % annotators.Count];
-
-                            var status = "Assigned";
-                            if (k == 1) status = "InProgress";
-                            if (k >= 2 && k < 4) status = "Submitted";
-                            if (k >= 4) status = "Rejected";
 
                             var assignment = new Assignment
                             {
@@ -129,21 +157,20 @@ namespace API
                                 AnnotatorId = assignedStaff.Id,
                                 Status = status,
                                 AssignedDate = DateTime.UtcNow,
-                                SubmittedAt = (status == "Submitted" || status == "Rejected") ? DateTime.UtcNow : null
+                                SubmittedAt = (status != "Assigned" && status != "InProgress") ? DateTime.UtcNow : null
                             };
 
-                            // Sửa lỗi WrongLabel -> IncorrectLabel
-                            if (status == "Rejected")
+                            // Nếu status là Approved hoặc Rejected thì phải có ReviewLog của Reviewer
+                            if (status == "Rejected" || status == "Approved")
                             {
                                 assignment.ReviewLogs = new List<ReviewLog>
                                 {
                                     new ReviewLog
                                     {
-                                        ReviewerId = managerId,
-                                        Verdict = "Rejected",
-                                        // Dùng hằng số có sẵn trong code của bạn
-                                        ErrorCategory = ErrorCategories.IncorrectLabel,
-                                        Comment = "Vẽ sai rồi, đây là xe máy không phải xe đạp!",
+                                        ReviewerId = reviewerId, // <--- Reviewer ID cố định duyệt bài
+                                        Verdict = status,
+                                        ErrorCategory = status == "Rejected" ? ErrorCategories.IncorrectLabel : null,
+                                        Comment = status == "Rejected" ? "Vẽ sai box rồi bạn ơi." : "Làm tốt lắm.",
                                         CreatedAt = DateTime.UtcNow
                                     }
                                 };
@@ -151,7 +178,6 @@ namespace API
 
                             if (item.Assignments == null) item.Assignments = new List<Assignment>();
                             item.Assignments.Add(assignment);
-
                             staffIndex++;
                         }
 
