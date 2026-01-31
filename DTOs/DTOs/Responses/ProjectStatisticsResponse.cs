@@ -133,6 +133,16 @@ namespace Core.DTOs.Responses
         /// </summary>
         /// <example>120.5</example>
         public double AverageDurationSeconds { get; set; }
+
+        /// <summary>
+        /// The average quality score based on review results (0-100).
+        /// </summary>
+        public double AverageQualityScore { get; set; }
+
+        /// <summary>
+        /// Total number of critical errors committed by this annotator.
+        /// </summary>
+        public int TotalCriticalErrors { get; set; }
     }
 
     /// <summary>

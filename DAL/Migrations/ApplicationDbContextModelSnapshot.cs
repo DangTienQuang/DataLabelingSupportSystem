@@ -299,6 +299,9 @@ namespace DAL.Migrations
                     b.Property<int>("AssignmentId")
                         .HasColumnType("int");
 
+                    b.Property<string>("AuditResult")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Comment")
                         .HasColumnType("nvarchar(max)");
 
@@ -312,9 +315,15 @@ namespace DAL.Migrations
                     b.Property<string>("ErrorCategory")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsAudited")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ReviewerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ScorePenalty")
+                        .HasColumnType("int");
 
                     b.Property<string>("Verdict")
                         .IsRequired()
@@ -367,6 +376,9 @@ namespace DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<double>("AverageQualityScore")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
@@ -379,13 +391,31 @@ namespace DAL.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<double>("ReviewerQualityScore")
+                        .HasColumnType("float");
+
                     b.Property<int>("TotalApproved")
                         .HasColumnType("int");
 
                     b.Property<int>("TotalAssigned")
                         .HasColumnType("int");
 
+                    b.Property<int>("TotalAuditedReviews")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalCorrectDecisions")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalCriticalErrors")
+                        .HasColumnType("int");
+
                     b.Property<int>("TotalRejected")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalReviewedTasks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalReviewsDone")
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")

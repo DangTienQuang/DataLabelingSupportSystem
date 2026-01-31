@@ -21,5 +21,8 @@ namespace DTOs.Entities
         public string? ErrorCategory { get; set; }
         public string Verdict { get; set; } = "Rejected";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int ScorePenalty { get; set; } = 0;
+        public bool IsAudited { get; set; } = false;
+        public string? AuditResult { get; set; }
     }
 }

@@ -168,6 +168,13 @@ namespace DAL.Migrations
                     TotalApproved = table.Column<int>(type: "int", nullable: false),
                     TotalRejected = table.Column<int>(type: "int", nullable: false),
                     EfficiencyScore = table.Column<float>(type: "real", nullable: false),
+                    AverageQualityScore = table.Column<double>(type: "float", nullable: false),
+                    TotalCriticalErrors = table.Column<int>(type: "int", nullable: false),
+                    TotalReviewedTasks = table.Column<int>(type: "int", nullable: false),
+                    ReviewerQualityScore = table.Column<double>(type: "float", nullable: false),
+                    TotalReviewsDone = table.Column<int>(type: "int", nullable: false),
+                    TotalCorrectDecisions = table.Column<int>(type: "int", nullable: false),
+                    TotalAuditedReviews = table.Column<int>(type: "int", nullable: false),
                     EstimatedEarnings = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
@@ -258,7 +265,10 @@ namespace DAL.Migrations
                     Comment = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ErrorCategory = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Verdict = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ScorePenalty = table.Column<int>(type: "int", nullable: false),
+                    IsAudited = table.Column<bool>(type: "bit", nullable: false),
+                    AuditResult = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {

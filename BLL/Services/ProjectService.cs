@@ -15,17 +15,20 @@ namespace BLL.Services
         private readonly IUserRepository _userRepository;
         private readonly IRepository<UserProjectStat> _statsRepo;
         private readonly IRepository<Invoice> _invoiceRepo;
+        private readonly IAssignmentRepository _assignmentRepo;
 
         public ProjectService(
             IProjectRepository projectRepository,
             IUserRepository userRepository,
             IRepository<UserProjectStat> statsRepo,
-            IRepository<Invoice> invoiceRepo)
+            IRepository<Invoice> invoiceRepo,
+            IAssignmentRepository assignmentRepo)
         {
             _projectRepository = projectRepository;
             _userRepository = userRepository;
             _statsRepo = statsRepo;
             _invoiceRepo = invoiceRepo;
+            _assignmentRepo = assignmentRepo;
         }
 
         public async Task<ProjectDetailResponse> CreateProjectAsync(string managerId, CreateProjectRequest request)
@@ -49,7 +52,6 @@ namespace BLL.Services
                 StartDate = startDate,
                 EndDate = endDate,
                 Deadline = endDate,
-
                 CreatedDate = DateTime.UtcNow,
                 AllowGeometryTypes = request.AllowGeometryTypes ?? "Rectangle"
             };
@@ -67,7 +69,6 @@ namespace BLL.Services
             await _projectRepository.AddAsync(project);
             await _projectRepository.SaveChangesAsync();
 
-            // 2. Trả về Response
             return new ProjectDetailResponse
             {
                 Id = project.Id,
@@ -155,7 +156,6 @@ namespace BLL.Services
             if (project == null) return null;
 
             var allAssignments = project.DataItems.SelectMany(d => d.Assignments).ToList();
-
             int total = project.DataItems.Count;
             int done = project.DataItems.Count(d => d.Status == "Done" || d.Status == "Completed" || d.Status == "Approved");
             int progressPercent = (total > 0) ? (int)((double)done / total * 100) : 0;
@@ -332,10 +332,10 @@ namespace BLL.Services
             if (project == null) throw new Exception("Project not found");
 
             var allStats = await _statsRepo.GetAllAsync();
-            var moneyStats = allStats.Where(s => s.ProjectId == projectId).ToList();
+            var projectUserStats = allStats.Where(s => s.ProjectId == projectId).ToList();
 
             var allAssignments = project.DataItems.SelectMany(d => d.Assignments).ToList();
-            var allReviewLogs = allAssignments.SelectMany(a => a.ReviewLogs).ToList();
+            var allReviewLogs = allAssignments.SelectMany(a => a.ReviewLogs ?? new List<ReviewLog>()).ToList();
             var totalReviewed = allReviewLogs.Count;
             var totalRejectedLogs = allReviewLogs.Count(l => l.Verdict == "Rejected" || l.Verdict == "Reject");
 
@@ -368,16 +368,23 @@ namespace BLL.Services
                 .GroupBy(a => a.AnnotatorId)
                 .Select(g =>
                 {
+                    var annotatorId = g.Key;
+                    var userStat = projectUserStats.FirstOrDefault(s => s.UserId == annotatorId);
+
                     return new AnnotatorPerformance
                     {
-                        AnnotatorId = g.Key,
-                        AnnotatorName = g.FirstOrDefault()?.Annotator.FullName ?? "Unknown",
+                        AnnotatorId = annotatorId,
+                        AnnotatorName = g.FirstOrDefault()?.Annotator?.FullName ?? "Unknown",
                         TasksAssigned = g.Count(),
                         TasksCompleted = g.Count(a => a.Status == "Completed"),
                         TasksRejected = g.Count(a => a.Status == "Rejected"),
-                        AverageDurationSeconds = 0
+                        AverageDurationSeconds = 0,
+
+                        AverageQualityScore = userStat?.AverageQualityScore ?? 100,
+                        TotalCriticalErrors = userStat?.TotalCriticalErrors ?? 0
                     };
                 }).ToList();
+
             var allAnnotations = allAssignments.SelectMany(a => a.Annotations).ToList();
             var labelCounts = allAnnotations
                 .Where(an => an.ClassId.HasValue)

@@ -9,12 +9,10 @@ namespace DTOs.Entities
         public int Id { get; set; }
 
         public string UserId { get; set; } = string.Empty;
-
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
 
         public int ProjectId { get; set; }
-
         [ForeignKey("ProjectId")]
         public virtual Project Project { get; set; } = null!;
 
@@ -24,7 +22,13 @@ namespace DTOs.Entities
         public int TotalApproved { get; set; }
         public int TotalRejected { get; set; }
         public float EfficiencyScore { get; set; }
-
+        public double AverageQualityScore { get; set; } = 100;
+        public int TotalCriticalErrors { get; set; } = 0;
+        public int TotalReviewedTasks { get; set; } = 0;
+        public double ReviewerQualityScore { get; set; } = 100; 
+        public int TotalReviewsDone { get; set; } = 0;        
+        public int TotalCorrectDecisions { get; set; } = 0;    
+        public int TotalAuditedReviews { get; set; } = 0;      
         [Column(TypeName = "decimal(18,2)")]
         public decimal EstimatedEarnings { get; set; }
     }

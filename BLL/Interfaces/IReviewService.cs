@@ -7,5 +7,6 @@ namespace BLL.Interfaces
     {
         Task ReviewAssignmentAsync(string reviewerId, ReviewRequest request);
         Task<List<TaskResponse>> GetTasksForReviewAsync(int projectId);
+        Task AuditReviewAsync(string managerId, AuditReviewRequest request);
     }
 }
