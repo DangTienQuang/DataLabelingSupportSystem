@@ -16,7 +16,7 @@ namespace DTOs.Entities
         public string Email { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
         public string PasswordHash { get; set; } = string.Empty;
-
+        public string? AvatarUrl { get; set; }
         [Required]
         public string Role { get; set; } = "Annotator"; 
         public virtual PaymentInfo? PaymentInfo { get; set; }

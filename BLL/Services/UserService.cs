@@ -127,7 +127,31 @@ namespace BLL.Services
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
         }
+        public async Task ChangePasswordAsync(string userId, string oldPassword, string newPassword)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+            if (!BCrypt.Net.BCrypt.Verify(oldPassword, user.PasswordHash))
+            {
+                throw new Exception("Old password is incorrect");
+            }
 
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task UpdateProfileAsync(string userId, UpdateProfileRequest request)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            if (!string.IsNullOrEmpty(request.FullName)) user.FullName = request.FullName;
+            if (!string.IsNullOrEmpty(request.AvatarUrl)) user.AvatarUrl = request.AvatarUrl;
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync();
+        }
         public async Task DeleteUserAsync(string userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);

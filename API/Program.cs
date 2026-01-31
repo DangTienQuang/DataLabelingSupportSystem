@@ -4,8 +4,6 @@ using BLL.Services;
 using DAL;
 using DAL.Interfaces;
 using DAL.Repositories;
-using DTOs.Constants;
-using DTOs.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -24,10 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // --- B. Đăng ký Repositories ---
-// Đăng ký Repository Generic trước
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
-// Đăng ký các Repository cụ thể
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
@@ -40,7 +35,7 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 
-// --- D. Cấu hình CORS (Cho phép Frontend truy cập) ---
+// --- D. Cấu hình CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -70,7 +65,7 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        ClockSkew = TimeSpan.Zero // Không cho phép lệch giờ (Token hết hạn là chặn ngay)
+        ClockSkew = TimeSpan.Zero
     };
 });
 
@@ -80,28 +75,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Data Labeling API", Version = "v1" });
-
-    // Cấu hình nút "Authorize" (Ổ khóa) trên Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Nhập token của bạn vào bên dưới (không cần gõ Bearer)",
+        Description = "Nhập token JWT của bạn (không cần gõ Bearer)",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http, 
-        Scheme = "Bearer",             
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
         BearerFormat = "JWT"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             new string[] {}
         }
@@ -114,28 +102,25 @@ var app = builder.Build();
 // 2. CẤU HÌNH HTTP REQUEST PIPELINE (MIDDLEWARES)
 // ==================================================================
 
-// --- QUAN TRỌNG: Đăng ký Middleware xử lý lỗi toàn cục ---
-// Nó phải nằm TRƯỚC các middleware khác để bắt lỗi từ chúng
 app.UseMiddleware<ExceptionMiddleware>();
 
-// --- Data Seeder (Chạy khi khởi động app) ---
-// Tự động tạo Manager và Sample Data nếu chưa có
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var env = services.GetRequiredService<IWebHostEnvironment>();
+    var context = services.GetRequiredService<ApplicationDbContext>();
+
     try
     {
-        // Gọi hàm SeedData static từ file DataSeeder.cs
-        await DataSeeder.SeedData(services);
+        await DataSeeder.SeedData(services, env.IsDevelopment());
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Lỗi xảy ra khi chạy Data Seeder.");
+        logger.LogError(ex, "Lỗi xảy ra khi khởi tạo dữ liệu ban đầu.");
     }
 }
 
-// --- Môi trường Development ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -143,12 +128,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// --- Kích hoạt CORS ---
 app.UseCors("AllowAll");
 
-// --- Kích hoạt Authentication & Authorization ---
-app.UseAuthentication(); // Phải đứng trước Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers
 {
     /// <summary>
-    /// Controller for handling user authentication and registration.
+    /// Provides APIs for user authentication and account registration.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -19,12 +19,27 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Registers a new user.
+        /// Registers a new user account.
         /// </summary>
-        /// <param name="request">The registration request containing user details.</param>
-        /// <returns>A confirmation message and the new user's ID.</returns>
-        /// <response code="200">Registration successful.</response>
-        /// <response code="400">If the registration fails (e.g., email already exists).</response>
+        /// <remarks>
+        /// This endpoint creates a new user with a specific role
+        /// (e.g., Annotator, Reviewer, Manager, Admin).
+        /// </remarks>
+        /// <param name="request">
+        /// The registration request containing:
+        /// - Full name
+        /// - Email address
+        /// - Password
+        /// - Role
+        /// </param>
+        /// <returns>
+        /// A confirmation message and the newly created user's unique identifier.
+        /// </returns>
+        /// <response code="200">User registered successfully.</response>
+        /// <response code="400">
+        /// Registration failed due to validation errors
+        /// (e.g., email already exists or invalid role).
+        /// </response>
         [HttpPost("register")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]
@@ -32,8 +47,18 @@ namespace API.Controllers
         {
             try
             {
-                var user = await _userService.RegisterAsync(request.FullName, request.Email, request.Password, request.Role);
-                return Ok(new { Message = "Registration successful", UserId = user.Id });
+                var user = await _userService.RegisterAsync(
+                    request.FullName,
+                    request.Email,
+                    request.Password,
+                    request.Role
+                );
+
+                return Ok(new
+                {
+                    Message = "Registration successful",
+                    UserId = user.Id
+                });
             }
             catch (Exception ex)
             {
@@ -42,18 +67,33 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Logs in a user and generates a JWT token.
+        /// Authenticates a user and issues a JWT access token.
         /// </summary>
-        /// <param name="request">The login request containing email and password.</param>
-        /// <returns>A JWT access token.</returns>
-        /// <response code="200">Login successful, returns token.</response>
-        /// <response code="401">Invalid email or password.</response>
+        /// <remarks>
+        /// The returned JWT token must be included in the
+        /// <c>Authorization</c> header as:
+        /// <br />
+        /// <c>Authorization: Bearer {token}</c>
+        /// </remarks>
+        /// <param name="request">
+        /// The login request containing the user's email and password.
+        /// </param>
+        /// <returns>
+        /// A JWT access token along with token metadata.
+        /// </returns>
+        /// <response code="200">Login successful and token issued.</response>
+        /// <response code="401">Authentication failed due to invalid credentials.</response>
+        /// <response code="400">Login request is invalid.</response>
         [HttpPost("login")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 401)]
+        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
                 var token = await _userService.LoginAsync(request.Email, request.Password);
+
                 if (token == null)
                 {
                     return Unauthorized(new { Message = "Invalid email or password" });

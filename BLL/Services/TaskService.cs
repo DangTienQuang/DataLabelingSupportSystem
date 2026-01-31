@@ -142,6 +142,19 @@ namespace BLL.Services
                     : null
             }).ToList();
         }
+        public async Task<AssignmentResponse> JumpToDataItemAsync(int projectId, int dataItemId, string userId)
+        {
+            var assignment = await _assignmentRepo.GetAllAsync();
+            var target = assignment.FirstOrDefault(a =>
+                a.ProjectId == projectId &&
+                a.DataItemId == dataItemId &&
+                a.AnnotatorId == userId);
+
+            if (target == null)
+                throw new Exception("You are not assigned to this image in this project.");
+
+            return await GetAssignmentByIdAsync(target.Id, userId);
+        }
         public async Task SaveDraftAsync(string userId, SubmitAnnotationRequest request)
         {
             if (string.IsNullOrEmpty(request.DataJSON) || request.DataJSON == "[]")

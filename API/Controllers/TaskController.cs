@@ -8,7 +8,8 @@ using System.Security.Claims;
 namespace API.Controllers
 {
     /// <summary>
-    /// Controller quản lý các tác vụ (Task) của Annotator và việc giao việc của Manager.
+    /// Controller for managing annotation tasks,
+    /// including task assignment by Managers and task execution by Annotators.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -22,14 +23,20 @@ namespace API.Controllers
             _taskService = taskService;
         }
 
+        // ======================================================
+        // MANAGER APIs
+        // ======================================================
+
         /// <summary>
-        /// (Manager) Giao việc cho nhân viên Annotator.
+        /// (Manager) Assign annotation tasks to an Annotator.
         /// </summary>
-        /// <param name="request">Thông tin giao việc (Project ID, Annotator ID, Số lượng ảnh).</param>
-        /// <returns>Thông báo thành công.</returns>
-        /// <response code="200">Giao việc thành công.</response>
-        /// <response code="400">Lỗi giao việc (ví dụ: không đủ ảnh, user không tồn tại).</response>
-        /// <response code="401">User không phải là Manager.</response>
+        /// <param name="request">
+        /// Assignment information including ProjectId, AnnotatorId, and number of images.
+        /// </param>
+        /// <returns>Assignment result message.</returns>
+        /// <response code="200">Tasks assigned successfully.</response>
+        /// <response code="400">Assignment failed (e.g. insufficient images, user not found).</response>
+        /// <response code="401">User is not authorized as Manager.</response>
         [HttpPost("assign")]
         [Authorize(Roles = "Manager")]
         [ProducesResponseType(typeof(object), 200)]
@@ -46,14 +53,98 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
+
+        // ======================================================
+        // ANNOTATOR - DASHBOARD APIs
+        // ======================================================
+
         /// <summary>
-        /// (Annotator) Lấy chi tiết 1 ảnh cụ thể bằng ID.
+        /// (Annotator - Dashboard) Get list of assigned projects.
         /// </summary>
         /// <remarks>
-        /// Dùng API này khi muốn nhảy trực tiếp đến một ảnh (ví dụ: bấm từ thông báo lỗi, hoặc F5 lại trang).
+        /// Used on the main Dashboard screen.
+        /// Assignments are grouped into Project Cards.
+        /// Returns overall progress, deadline, and project status.
         /// </remarks>
-        /// <param name="id">ID của Assignment (AssignmentId).</param>
-        /// <returns>Chi tiết ảnh và dữ liệu vẽ.</returns>
+        /// <returns>List of projects assigned to the current user.</returns>
+        /// <response code="200">Projects retrieved successfully.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpGet("my-projects")]
+        [ProducesResponseType(typeof(List<AssignedProjectResponse>), 200)]
+        [ProducesResponseType(typeof(void), 401)]
+        public async Task<IActionResult> GetMyProjects()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var projects = await _taskService.GetAssignedProjectsAsync(userId);
+            return Ok(projects);
+        }
+
+        // ======================================================
+        // ANNOTATOR - WORK AREA APIs
+        // ======================================================
+
+        /// <summary>
+        /// (Annotator - Work Area) Get all images (assignments) of a project.
+        /// </summary>
+        /// <remarks>
+        /// Called when the user enters a project.
+        /// Returns the full assignment list so FE can handle Next / Previous navigation.
+        /// </remarks>
+        /// <param name="projectId">Target project ID.</param>
+        /// <returns>List of assignments with status and existing annotation data.</returns>
+        /// <response code="200">Images retrieved successfully.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpGet("project/{projectId}/images")]
+        [ProducesResponseType(typeof(List<AssignmentResponse>), 200)]
+        [ProducesResponseType(typeof(void), 401)]
+        public async Task<IActionResult> GetProjectImages(int projectId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var images = await _taskService.GetTaskImagesAsync(projectId, userId);
+            return Ok(images);
+        }
+
+        /// <summary>
+        /// (Annotator) Jump to a specific image inside a project.
+        /// </summary>
+        /// <remarks>
+        /// Used for navigation scenarios such as:
+        /// - Clicking an error notification
+        /// - Refreshing the page (F5)
+        /// </remarks>
+        /// <param name="projectId">Project ID.</param>
+        /// <param name="dataItemId">Target data item ID.</param>
+        /// <returns>Assignment detail.</returns>
+        [HttpGet("project/{projectId}/jump/{dataItemId}")]
+        [ProducesResponseType(typeof(AssignmentResponse), 200)]
+        public async Task<IActionResult> JumpToImage(int projectId, int dataItemId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var result = await _taskService.JumpToDataItemAsync(projectId, dataItemId, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// (Annotator) Get a single assignment by AssignmentId.
+        /// </summary>
+        /// <remarks>
+        /// Used when navigating directly to a specific image.
+        /// </remarks>
+        /// <param name="id">Assignment ID.</param>
+        /// <returns>Assignment detail including image and annotation data.</returns>
         [HttpGet("assignment/{id}")]
         [ProducesResponseType(typeof(AssignmentResponse), 200)]
         [ProducesResponseType(typeof(object), 404)]
@@ -72,63 +163,24 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
-        /// <summary>
-        /// (Annotator - Dashboard) Lấy danh sách Dự án được phân công.
-        /// </summary>
-        /// <remarks>
-        /// API này dùng cho màn hình Dashboard chính. 
-        /// Nó sẽ gom nhóm các ảnh lẻ tẻ thành các thẻ Dự án (Project Card).
-        /// Trả về tiến độ (%), deadline, và trạng thái tổng quan.
-        /// </remarks>
-        /// <returns>Danh sách các dự án mà user đang tham gia.</returns>
-        /// <response code="200">Trả về danh sách dự án thành công.</response>
-        /// <response code="401">Chưa đăng nhập.</response>
-        [HttpGet("my-projects")]
-        [ProducesResponseType(typeof(List<AssignedProjectResponse>), 200)]
-        [ProducesResponseType(typeof(void), 401)]
-        public async Task<IActionResult> GetMyProjects()
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            var projects = await _taskService.GetAssignedProjectsAsync(userId);
-            return Ok(projects);
-        }
+        // ======================================================
+        // ANNOTATOR - SAVE & SUBMIT APIs
+        // ======================================================
 
         /// <summary>
-        /// (Annotator - Work Area) Lấy danh sách Ảnh chi tiết trong một dự án để làm việc.
+        /// (Annotator) Save annotation draft.
         /// </summary>
         /// <remarks>
-        /// API này dùng khi user bấm vào một thẻ Dự án. 
-        /// Nó trả về toàn bộ list ảnh (Assignments) để FE xử lý nút Next/Back.
+        /// Called when the user clicks "Next" or "Save".
+        /// Updates annotation data (DataJSON) and sets status to 'InProgress'.
         /// </remarks>
-        /// <param name="projectId">ID của dự án muốn làm.</param>
-        /// <returns>Danh sách ảnh kèm trạng thái và dữ liệu vẽ cũ (nếu có).</returns>
-        /// <response code="200">Trả về danh sách ảnh thành công.</response>
-        /// <response code="401">Chưa đăng nhập.</response>
-        [HttpGet("project/{projectId}/images")]
-        [ProducesResponseType(typeof(List<AssignmentResponse>), 200)]
-        [ProducesResponseType(typeof(void), 401)]
-        public async Task<IActionResult> GetProjectImages(int projectId)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var images = await _taskService.GetTaskImagesAsync(projectId, userId);
-            return Ok(images);
-        }
-
-        /// <summary>
-        /// (Annotator) Lưu nháp (Save Draft).
-        /// </summary>
-        /// <remarks>
-        /// Gọi API này khi user bấm nút "Next" hoặc "Save".
-        /// Hệ thống sẽ lưu đè dữ liệu vẽ (DataJSON) và cập nhật trạng thái thành 'InProgress'.
-        /// </remarks>
-        /// <param name="request">Chứa AssignmentId và cục DataJSON (Canvas).</param>
-        /// <returns>Thông báo thành công.</returns>
-        /// <response code="200">Lưu nháp thành công.</response>
-        /// <response code="400">Lỗi dữ liệu đầu vào.</response>
+        /// <param name="request">
+        /// Contains AssignmentId and annotation data (Canvas JSON).
+        /// </param>
+        /// <returns>Save result.</returns>
+        /// <response code="200">Draft saved successfully.</response>
+        /// <response code="400">Invalid input data.</response>
         [HttpPost("save-draft")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]
@@ -140,7 +192,7 @@ namespace API.Controllers
             try
             {
                 await _taskService.SaveDraftAsync(userId, request);
-                return Ok(new { Message = "Draft saved successfully" });
+                return Ok(new { Message = "Draft saved successfully." });
             }
             catch (Exception ex)
             {
@@ -149,16 +201,18 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// (Annotator) Nộp bài (Submit).
+        /// (Annotator) Submit annotation for review.
         /// </summary>
         /// <remarks>
-        /// Gọi API này khi user bấm nút "Submit".
-        /// Hệ thống sẽ lưu dữ liệu vẽ và cập nhật trạng thái thành 'Submitted' (Chờ duyệt).
+        /// Called when the user clicks "Submit".
+        /// Updates annotation data and sets status to 'Submitted'.
         /// </remarks>
-        /// <param name="request">Chứa AssignmentId và cục DataJSON (Canvas).</param>
-        /// <returns>Thông báo thành công.</returns>
-        /// <response code="200">Nộp bài thành công.</response>
-        /// <response code="400">Lỗi nộp bài.</response>
+        /// <param name="request">
+        /// Contains AssignmentId and final annotation data.
+        /// </param>
+        /// <returns>Submit result.</returns>
+        /// <response code="200">Task submitted successfully.</response>
+        /// <response code="400">Submission failed.</response>
         [HttpPost("submit")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]
@@ -170,7 +224,7 @@ namespace API.Controllers
             try
             {
                 await _taskService.SubmitTaskAsync(userId, request);
-                return Ok(new { Message = "Task submitted successfully" });
+                return Ok(new { Message = "Task submitted successfully." });
             }
             catch (Exception ex)
             {
