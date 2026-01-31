@@ -2,20 +2,19 @@
 {
     public static class ErrorCategories
     {
+        public const string LU01_IncorrectLabel = "LU-01: Incorrect label definition";
+        public const string LU02_Confusion = "LU-02: Label confusion";
 
-        public const string LU01_IncorrectLabel = "LU-01: Sai định nghĩa nhãn (Gán xe Buýt thành Xe con)";
-        public const string LU02_Confusion = "LU-02: Nhầm lẫn nhãn (Xe máy vs Xe đạp điện)";
+        public const string TE01_WrongBox = "TE-01: Incorrect labeling region";
+        public const string TE02_LooseBox = "TE-02: Bounding box too loose";
+        public const string TE03_TightBox = "TE-03: Bounding box too tight";
+        public const string TE04_OcclusionError = "TE-04: Incorrect handling of occlusion";
 
-        public const string TE01_WrongBox = "TE-01: Sai vùng gán nhãn (Box lệch hẳn đối tượng)";
-        public const string TE02_LooseBox = "TE-02: Box quá rộng (Dư nhiều nền)";
-        public const string TE03_TightBox = "TE-03: Box quá hẹp (Cắt mất chi tiết xe)";
-        public const string TE04_OcclusionError = "TE-04: Xử lý che khuất sai (Vẽ cả phần bị che)";
+        public const string ME01_MissingObject = "ME-01: Missing object";
+        public const string ME02_ExtraLabel = "ME-02: Extra / redundant label";
 
-        public const string ME01_MissingObject = "ME-01: Bỏ sót đối tượng (Thiếu nhãn)";
-        public const string ME02_ExtraLabel = "ME-02: Gán thừa (Vẽ vào khoảng trống/rác)";
-
-        public const string PR01_ProcessError = "PR-01: Lỗi quy trình (Chưa hoàn thành hết ảnh)";
-        public const string Other = "Other: Lỗi khác";
+        public const string PR01_ProcessError = "PR-01: Process error";
+        public const string Other = "Other: Other errors";
 
         public static readonly List<string> All = new()
         {
