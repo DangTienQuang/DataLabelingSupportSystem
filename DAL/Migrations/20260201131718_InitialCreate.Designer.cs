@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260131173419_InitialCreate")]
+    [Migration("20260201131718_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -46,12 +46,17 @@ namespace DAL.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("LabelClassId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AssignmentId");
+
+                    b.HasIndex("LabelClassId");
 
                     b.ToTable("Annotations");
                 });
@@ -194,6 +199,10 @@ namespace DAL.Migrations
 
                     b.Property<string>("Color")
                         .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.Property<string>("DefaultChecklist")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GuideLine")
@@ -201,7 +210,8 @@ namespace DAL.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
@@ -459,6 +469,10 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DTOs.Entities.LabelClass", null)
+                        .WithMany("Annotations")
+                        .HasForeignKey("LabelClassId");
+
                     b.Navigation("Assignment");
                 });
 
@@ -606,6 +620,11 @@ namespace DAL.Migrations
             modelBuilder.Entity("DTOs.Entities.DataItem", b =>
                 {
                     b.Navigation("Assignments");
+                });
+
+            modelBuilder.Entity("DTOs.Entities.LabelClass", b =>
+                {
+                    b.Navigation("Annotations");
                 });
 
             modelBuilder.Entity("DTOs.Entities.Project", b =>

@@ -19,7 +19,7 @@ namespace DAL.Repositories
                 .Include(a => a.DataItem)
                 .Include(a => a.Project)
                     .ThenInclude(p => p.LabelClasses)
-                .Include(a => a.Annotations) 
+                .Include(a => a.Annotations)
                 .Include(a => a.ReviewLogs)
                 .Where(a => a.AnnotatorId == annotatorId);
 
@@ -54,14 +54,15 @@ namespace DAL.Repositories
                 .FirstOrDefaultAsync(a => a.Id == assignmentId);
         }
 
-        public async Task<List<Assignment>> GetAssignmentsForReviewerAsync(int projectId)
+        public async Task<List<Assignment>> GetAssignmentsForReviewerAsync(int projectId, string reviewerId)
         {
             return await AppContext.Assignments
                 .Include(a => a.DataItem)
                 .Include(a => a.Project)
                     .ThenInclude(p => p.LabelClasses)
                 .Include(a => a.Annotations)
-                .Where(a => a.ProjectId == projectId && a.Status == "Submitted")
+                .Where(a => a.ProjectId == projectId && a.ReviewerId == reviewerId && a.Status == "Submitted")
+                .OrderBy(a => a.Id)
                 .ToListAsync();
         }
 

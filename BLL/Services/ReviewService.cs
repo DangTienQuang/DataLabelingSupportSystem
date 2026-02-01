@@ -2,7 +2,6 @@
 using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using DAL.Interfaces;
-using DTOs.Constants;
 using DTOs.Entities;
 using System.Text.Json;
 
@@ -34,7 +33,6 @@ namespace BLL.Services
         {
             var assignment = await _assignmentRepo.GetByIdAsync(request.AssignmentId);
             if (assignment == null) throw new Exception("Assignment not found");
-
             if (assignment.ReviewerId != reviewerId)
                 throw new Exception("You are not assigned to review this task.");
 
@@ -45,22 +43,30 @@ namespace BLL.Services
             if (project == null) throw new Exception("Project info not found");
 
             var allStats = await _statsRepo.GetAllAsync();
-            var stats = allStats.FirstOrDefault(s => s.UserId == assignment.AnnotatorId && s.ProjectId == assignment.ProjectId);
+            var annotatorStats = allStats.FirstOrDefault(s => s.UserId == assignment.AnnotatorId && s.ProjectId == assignment.ProjectId);
 
-            if (stats == null)
+            if (annotatorStats == null)
             {
-                stats = new UserProjectStat
+                annotatorStats = new UserProjectStat
                 {
                     UserId = assignment.AnnotatorId,
                     ProjectId = assignment.ProjectId,
-                    TotalAssigned = 0,
                     EfficiencyScore = 100,
-                    EstimatedEarnings = 0,
-                    AverageQualityScore = 100,
-                    TotalReviewedTasks = 0,
-                    TotalCriticalErrors = 0
+                    AverageQualityScore = 100
                 };
-                await _statsRepo.AddAsync(stats);
+                await _statsRepo.AddAsync(annotatorStats);
+            }
+            var reviewerStats = allStats.FirstOrDefault(s => s.UserId == reviewerId && s.ProjectId == assignment.ProjectId);
+            if (reviewerStats == null)
+            {
+                reviewerStats = new UserProjectStat
+                {
+                    UserId = reviewerId,
+                    ProjectId = assignment.ProjectId,
+                    ReviewerQualityScore = 100,
+                    TotalReviewsDone = 0
+                };
+                await _statsRepo.AddAsync(reviewerStats);
             }
 
             double currentTaskScore = 0;
@@ -70,8 +76,8 @@ namespace BLL.Services
             {
                 currentTaskScore = 100;
                 assignment.Status = "Completed";
-                stats.TotalApproved++;
-                stats.EstimatedEarnings = stats.TotalApproved * project.PricePerLabel;
+                annotatorStats.TotalApproved++;
+                annotatorStats.EstimatedEarnings = annotatorStats.TotalApproved * project.PricePerLabel;
 
                 if (assignment.DataItemId > 0)
                 {
@@ -86,14 +92,14 @@ namespace BLL.Services
             else
             {
                 assignment.Status = "Rejected";
-                stats.TotalRejected++;
+                annotatorStats.TotalRejected++;
                 int weight = 0;
-
                 if (!string.IsNullOrEmpty(project.ReviewChecklist) && !string.IsNullOrEmpty(request.ErrorCategory))
                 {
                     try
                     {
-                        var checklistItems = JsonSerializer.Deserialize<List<ChecklistItemRequest>>(project.ReviewChecklist);
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var checklistItems = JsonSerializer.Deserialize<List<ChecklistItemRequest>>(project.ReviewChecklist, options);
                         var item = checklistItems?.FirstOrDefault(c => c.Code == request.ErrorCategory);
                         if (item != null)
                         {
@@ -105,22 +111,24 @@ namespace BLL.Services
 
                 if (weight >= 10)
                 {
-                    stats.TotalCriticalErrors++;
+                    annotatorStats.TotalCriticalErrors++;
                 }
 
                 penaltyScore = weight * 10;
                 currentTaskScore = Math.Max(0, 100 - penaltyScore);
             }
 
-            double totalScoreSoFar = (stats.AverageQualityScore * stats.TotalReviewedTasks) + currentTaskScore;
-            stats.TotalReviewedTasks++;
-            stats.AverageQualityScore = Math.Round(totalScoreSoFar / stats.TotalReviewedTasks, 2);
+            double totalScoreSoFar = (annotatorStats.AverageQualityScore * annotatorStats.TotalReviewedTasks) + currentTaskScore;
+            annotatorStats.TotalReviewedTasks++;
+            annotatorStats.AverageQualityScore = Math.Round(totalScoreSoFar / annotatorStats.TotalReviewedTasks, 2);
 
-            if (stats.TotalAssigned > 0)
+            if (annotatorStats.TotalAssigned > 0)
             {
-                stats.EfficiencyScore = ((float)stats.TotalApproved / stats.TotalAssigned) * 100;
+                annotatorStats.EfficiencyScore = ((float)annotatorStats.TotalApproved / annotatorStats.TotalAssigned) * 100;
             }
-            stats.Date = DateTime.UtcNow;
+            annotatorStats.Date = DateTime.UtcNow;
+            reviewerStats.TotalReviewsDone++;
+            reviewerStats.Date = DateTime.UtcNow;
 
             var log = new ReviewLog
             {
@@ -134,7 +142,8 @@ namespace BLL.Services
             };
 
             await _reviewLogRepo.AddAsync(log);
-            _statsRepo.Update(stats);
+            _statsRepo.Update(annotatorStats);
+            _statsRepo.Update(reviewerStats);
             _assignmentRepo.Update(assignment);
 
             await _assignmentRepo.SaveChangesAsync();
@@ -158,10 +167,7 @@ namespace BLL.Services
                 {
                     UserId = log.ReviewerId,
                     ProjectId = assignment.ProjectId,
-                    ReviewerQualityScore = 100,
-                    TotalReviewsDone = 0,
-                    TotalAuditedReviews = 0,
-                    TotalCorrectDecisions = 0
+                    ReviewerQualityScore = 100
                 };
                 await _statsRepo.AddAsync(reviewerStats);
             }
@@ -189,11 +195,9 @@ namespace BLL.Services
 
         public async Task<List<TaskResponse>> GetTasksForReviewAsync(int projectId, string reviewerId)
         {
-            var assignments = await _assignmentRepo.GetAssignmentsForReviewerAsync(projectId);
+            var assignments = await _assignmentRepo.GetAssignmentsForReviewerAsync(projectId, reviewerId);
 
-            var myAssignments = assignments.Where(a => a.ReviewerId == reviewerId).ToList();
-
-            return myAssignments.Select(a => new TaskResponse
+            return assignments.Select(a => new TaskResponse
             {
                 AssignmentId = a.Id,
                 DataItemId = a.DataItemId,

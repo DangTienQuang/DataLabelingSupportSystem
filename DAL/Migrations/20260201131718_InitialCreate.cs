@@ -143,10 +143,11 @@ namespace DAL.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProjectId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Color = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    GuideLine = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Color = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false),
+                    GuideLine = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DefaultChecklist = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ProjectId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -250,7 +251,8 @@ namespace DAL.Migrations
                     DataJSON = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ClassId = table.Column<int>(type: "int", nullable: true),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LabelClassId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -261,6 +263,11 @@ namespace DAL.Migrations
                         principalTable: "Assignments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Annotations_LabelClasses_LabelClassId",
+                        column: x => x.LabelClassId,
+                        principalTable: "LabelClasses",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -301,6 +308,11 @@ namespace DAL.Migrations
                 name: "IX_Annotations_AssignmentId",
                 table: "Annotations",
                 column: "AssignmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Annotations_LabelClassId",
+                table: "Annotations",
+                column: "LabelClassId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Assignments_AnnotatorId",
@@ -384,9 +396,6 @@ namespace DAL.Migrations
                 name: "Invoices");
 
             migrationBuilder.DropTable(
-                name: "LabelClasses");
-
-            migrationBuilder.DropTable(
                 name: "PaymentInfos");
 
             migrationBuilder.DropTable(
@@ -394,6 +403,9 @@ namespace DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserProjectStats");
+
+            migrationBuilder.DropTable(
+                name: "LabelClasses");
 
             migrationBuilder.DropTable(
                 name: "Assignments");

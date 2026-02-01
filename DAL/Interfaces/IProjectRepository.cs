@@ -8,7 +8,7 @@ namespace DAL.Interfaces
         Task<Project?> GetProjectForExportAsync(int id);
         Task<Project?> GetProjectWithStatsDataAsync(int id);
         Task<List<Project>> GetProjectsByManagerIdAsync(string managerId);
-
+        Task<Dictionary<int, int>> GetProjectLabelCountsAsync(int projectId);
         Task<List<Project>> GetProjectsByAnnotatorAsync(string annotatorId);
     }
 }

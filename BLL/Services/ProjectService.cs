@@ -97,7 +97,7 @@ namespace BLL.Services
                     Color = l.Color,
                     GuideLine = l.GuideLine,
                     Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
-                                ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist) ?? new List<string>()
+                                ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
                                 : new List<string>()
                 }).ToList(),
                 TotalDataItems = 0,
@@ -240,7 +240,7 @@ namespace BLL.Services
                     Color = l.Color,
                     GuideLine = l.GuideLine,
                     Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
-                                ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist) ?? new List<string>()
+                                ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
                                 : new List<string>()
                 }).ToList(),
                 TotalDataItems = total,
@@ -264,7 +264,7 @@ namespace BLL.Services
                 Progress = p.DataItems.Count > 0
                     ? (decimal)p.DataItems.Count(d =>
                         d.Status == "Done" || d.Status == "Completed" || d.Status == "Approved" ||
-                        d.Assignments.Any(a => a.Status == "Submitted" || a.Status == "Completed" || a.Status == "Approved")
+                        (d.Assignments != null && d.Assignments.Any(a => a.Status == "Submitted" || a.Status == "Completed" || a.Status == "Approved"))
                       ) / p.DataItems.Count * 100
                     : 0,
                 TotalMembers = p.DataItems
@@ -417,11 +417,7 @@ namespace BLL.Services
                     };
                 }).ToList();
 
-            var allAnnotations = allAssignments.SelectMany(a => a.Annotations).ToList();
-            var labelCounts = allAnnotations
-                .Where(an => an.ClassId.HasValue)
-                .GroupBy(an => an.ClassId)
-                .ToDictionary(g => g.Key, g => g.Count());
+            var labelCounts = await _projectRepository.GetProjectLabelCountsAsync(projectId);
 
             stats.LabelDistributions = project.LabelClasses.Select(lc => new LabelDistribution
             {
