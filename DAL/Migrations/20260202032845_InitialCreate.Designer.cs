@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260201131718_InitialCreate")]
+    [Migration("20260202032845_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -268,6 +268,7 @@ namespace DAL.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AnnotationGuide")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
@@ -277,6 +278,7 @@ namespace DAL.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("EndDate")
@@ -291,15 +293,14 @@ namespace DAL.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PenaltyUnit")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("PricePerLabel")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ReviewChecklist")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
@@ -313,6 +314,38 @@ namespace DAL.Migrations
                     b.HasIndex("ManagerId");
 
                     b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("DTOs.Entities.ReviewChecklistItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsCritical")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("ReviewChecklistItems");
                 });
 
             modelBuilder.Entity("DTOs.Entities.ReviewLog", b =>
@@ -572,6 +605,17 @@ namespace DAL.Migrations
                     b.Navigation("Manager");
                 });
 
+            modelBuilder.Entity("DTOs.Entities.ReviewChecklistItem", b =>
+                {
+                    b.HasOne("DTOs.Entities.Project", "Project")
+                        .WithMany("ChecklistItems")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("DTOs.Entities.ReviewLog", b =>
                 {
                     b.HasOne("DTOs.Entities.Assignment", "Assignment")
@@ -594,7 +638,7 @@ namespace DAL.Migrations
             modelBuilder.Entity("DTOs.Entities.UserProjectStat", b =>
                 {
                     b.HasOne("DTOs.Entities.Project", "Project")
-                        .WithMany("UserProjectStats")
+                        .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -629,11 +673,11 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DTOs.Entities.Project", b =>
                 {
+                    b.Navigation("ChecklistItems");
+
                     b.Navigation("DataItems");
 
                     b.Navigation("LabelClasses");
-
-                    b.Navigation("UserProjectStats");
                 });
 
             modelBuilder.Entity("DTOs.Entities.User", b =>

@@ -19,7 +19,7 @@ namespace DAL
         public DbSet<ReviewLog> ReviewLogs { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<UserProjectStat> UserProjectStats { get; set; }
-
+        public DbSet<ReviewChecklistItem> ReviewChecklistItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

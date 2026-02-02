@@ -34,6 +34,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
+builder.Services.AddScoped<IStatisticService, StatisticService>();
 
 // --- D. Cấu hình CORS ---
 builder.Services.AddCors(options =>

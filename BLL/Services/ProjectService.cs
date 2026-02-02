@@ -42,6 +42,8 @@ namespace BLL.Services
             var startDate = request.StartDate ?? DateTime.UtcNow;
             var endDate = request.EndDate ?? DateTime.UtcNow.AddDays(30);
 
+            int penaltyUnit = request.PenaltyUnit > 0 ? request.PenaltyUnit : 10;
+
             var project = new Project
             {
                 ManagerId = managerId,
@@ -55,12 +57,22 @@ namespace BLL.Services
                 CreatedDate = DateTime.UtcNow,
                 AllowGeometryTypes = request.AllowGeometryTypes ?? "Rectangle",
                 AnnotationGuide = request.AnnotationGuide,
-                MaxTaskDurationHours = request.MaxTaskDurationHours
+                MaxTaskDurationHours = request.MaxTaskDurationHours,
+                PenaltyUnit = penaltyUnit 
             };
 
             if (request.ReviewChecklist != null && request.ReviewChecklist.Any())
             {
-                project.ReviewChecklist = JsonSerializer.Serialize(request.ReviewChecklist);
+                foreach (var item in request.ReviewChecklist)
+                {
+                    project.ChecklistItems.Add(new ReviewChecklistItem
+                    {
+                        Code = item.Code,
+                        Description = item.Description,
+                        Weight = item.Weight,
+                        IsCritical = item.Weight >= 3
+                    });
+                }
             }
 
             foreach (var label in request.LabelClasses)
@@ -71,8 +83,8 @@ namespace BLL.Services
                     Color = label.Color,
                     GuideLine = label.GuideLine,
                     DefaultChecklist = (label.Checklist != null && label.Checklist.Any())
-                                        ? JsonSerializer.Serialize(label.Checklist)
-                                        : "[]"
+                                            ? JsonSerializer.Serialize(label.Checklist)
+                                            : "[]"
                 });
             }
 
@@ -124,14 +136,32 @@ namespace BLL.Services
                 project.AnnotationGuide = request.AnnotationGuide;
             }
 
-            if (request.ReviewChecklist != null)
-            {
-                project.ReviewChecklist = JsonSerializer.Serialize(request.ReviewChecklist);
-            }
-
             if (request.MaxTaskDurationHours.HasValue)
             {
                 project.MaxTaskDurationHours = request.MaxTaskDurationHours.Value;
+            }
+
+            if (request.PenaltyUnit > 0)
+            {
+                project.PenaltyUnit = request.PenaltyUnit;
+            }
+
+            if (request.ReviewChecklist != null)
+            {
+
+                project.ChecklistItems.Clear();
+
+                foreach (var item in request.ReviewChecklist)
+                {
+                    project.ChecklistItems.Add(new ReviewChecklistItem
+                    {
+                        ProjectId = projectId,
+                        Code = item.Code,
+                        Description = item.Description,
+                        Weight = item.Weight,
+                        IsCritical = item.Weight >= 3
+                    });
+                }
             }
 
             _projectRepository.Update(project);
@@ -150,12 +180,13 @@ namespace BLL.Services
                     .Where(a => a.AnnotatorId == annotatorId)
                     .ToList();
                 var total = myAssignments.Count;
-                var completed = myAssignments.Count(a => a.Status == "Submitted" || a.Status == "Completed");
+                var completed = myAssignments.Count(a => a.Status == TaskStatusConstants.Submitted || a.Status == TaskStatusConstants.Approved);
                 var nextTask = myAssignments
-                    .OrderByDescending(a => a.Status == "InProgress")
-                    .ThenByDescending(a => a.Status == "Rejected")
-                    .ThenByDescending(a => a.Status == "Assigned")
-                    .FirstOrDefault(a => a.Status == "InProgress" || a.Status == "Rejected" || a.Status == "Assigned");
+                    .OrderByDescending(a => a.Status == TaskStatusConstants.InProgress)
+                    .ThenByDescending(a => a.Status == TaskStatusConstants.Rejected)
+                    .ThenByDescending(a => a.Status == TaskStatusConstants.Assigned)
+                    .FirstOrDefault(a => a.Status == TaskStatusConstants.InProgress || a.Status == TaskStatusConstants.Rejected || a.Status == TaskStatusConstants.Assigned);
+
                 string status = "Active";
                 if (DateTime.UtcNow > p.Deadline) status = "Expired";
                 else if (total > 0 && total == completed) status = "Completed";
@@ -186,7 +217,7 @@ namespace BLL.Services
                 {
                     ProjectId = projectId,
                     StorageUrl = url,
-                    Status = "New",
+                    Status = TaskStatusConstants.New,
                     MetaData = "{}",
                     UploadedDate = DateTime.UtcNow
                 });
@@ -203,7 +234,7 @@ namespace BLL.Services
 
             var allAssignments = project.DataItems.SelectMany(d => d.Assignments).ToList();
             int total = project.DataItems.Count;
-            int done = project.DataItems.Count(d => d.Status == "Done" || d.Status == "Completed" || d.Status == "Approved");
+            int done = project.DataItems.Count(d => d.Status == TaskStatusConstants.Approved);
             int progressPercent = (total > 0) ? (int)((double)done / total * 100) : 0;
 
             var members = allAssignments
@@ -216,9 +247,9 @@ namespace BLL.Services
                     Email = g.First().Annotator.Email,
                     Role = g.First().Annotator.Role,
                     TasksAssigned = g.Count(),
-                    TasksCompleted = g.Count(a => a.Status == "Completed" || a.Status == "Approved" || a.Status == "Done"),
+                    TasksCompleted = g.Count(a => a.Status == TaskStatusConstants.Approved),
                     Progress = g.Count() > 0
-                        ? Math.Round((decimal)g.Count(a => a.Status == "Completed" || a.Status == "Approved" || a.Status == "Done") / g.Count() * 100, 2)
+                        ? Math.Round((decimal)g.Count(a => a.Status == TaskStatusConstants.Approved) / g.Count() * 100, 2)
                         : 0
                 }).ToList();
 
@@ -263,8 +294,8 @@ namespace BLL.Services
                 Status = DateTime.UtcNow > p.Deadline ? "Expired" : "Active",
                 Progress = p.DataItems.Count > 0
                     ? (decimal)p.DataItems.Count(d =>
-                        d.Status == "Done" || d.Status == "Completed" || d.Status == "Approved" ||
-                        (d.Assignments != null && d.Assignments.Any(a => a.Status == "Submitted" || a.Status == "Completed" || a.Status == "Approved"))
+                        d.Status == TaskStatusConstants.Approved ||
+                        (d.Assignments != null && d.Assignments.Any(a => a.Status == TaskStatusConstants.Approved))
                       ) / p.DataItems.Count * 100
                     : 0,
                 TotalMembers = p.DataItems
@@ -322,14 +353,15 @@ namespace BLL.Services
             if (user == null) throw new Exception("User not found");
             if (user.Role != UserRoles.Admin && project.ManagerId != userId)
                 throw new Exception("Unauthorized to export this project.");
+
             var dataItems = project.DataItems
-                .Where(d => d.Status == "Done" || d.Status == "Completed" || d.Status == "Approved")
+                .Where(d => d.Status == TaskStatusConstants.Approved)
                 .Select(d => new
                 {
                     DataItemId = d.Id,
                     StorageUrl = d.StorageUrl,
                     Annotations = d.Assignments
-                        .Where(a => a.Status == "Completed" || a.Status == "Submitted" || a.Status == "Approved")
+                        .Where(a => a.Status == TaskStatusConstants.Approved)
                         .SelectMany(a => a.Annotations)
                         .Select(an => new
                         {
@@ -376,13 +408,12 @@ namespace BLL.Services
                 ProjectId = project.Id,
                 ProjectName = project.Name,
                 TotalItems = project.DataItems.Count,
-                CompletedItems = project.DataItems.Count(d => d.Status == "Done" || d.Status == "Completed"),
-
+                CompletedItems = project.DataItems.Count(d => d.Status == TaskStatusConstants.Approved),
                 TotalAssignments = allAssignments.Count,
-                PendingAssignments = allAssignments.Count(a => a.Status == "Assigned" || a.Status == "InProgress"),
-                SubmittedAssignments = allAssignments.Count(a => a.Status == "Submitted"),
-                ApprovedAssignments = allAssignments.Count(a => a.Status == "Completed"),
-                RejectedAssignments = allAssignments.Count(a => a.Status == "Rejected"),
+                PendingAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Assigned || a.Status == TaskStatusConstants.InProgress),
+                SubmittedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Submitted),
+                ApprovedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Approved),
+                RejectedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Rejected),
                 RejectionRate = totalReviewed > 0
                     ? Math.Round((double)totalRejectedLogs / totalReviewed * 100, 2)
                     : 0,
@@ -408,10 +439,9 @@ namespace BLL.Services
                         AnnotatorId = annotatorId,
                         AnnotatorName = g.FirstOrDefault()?.Annotator?.FullName ?? "Unknown",
                         TasksAssigned = g.Count(),
-                        TasksCompleted = g.Count(a => a.Status == "Completed"),
-                        TasksRejected = g.Count(a => a.Status == "Rejected"),
+                        TasksCompleted = g.Count(a => a.Status == TaskStatusConstants.Approved),
+                        TasksRejected = g.Count(a => a.Status == TaskStatusConstants.Rejected),
                         AverageDurationSeconds = 0,
-
                         AverageQualityScore = userStat?.AverageQualityScore ?? 100,
                         TotalCriticalErrors = userStat?.TotalCriticalErrors ?? 0
                     };

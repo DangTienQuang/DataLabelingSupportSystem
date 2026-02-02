@@ -8,11 +8,21 @@ namespace DAL.Repositories
     {
         public ProjectRepository(ApplicationDbContext context) : base(context) { }
 
+        public new async Task<Project?> GetByIdAsync(object id)
+        {
+            return await _context.Projects
+                .Include(p => p.Manager)
+                .Include(p => p.LabelClasses)
+                .Include(p => p.ChecklistItems)
+                .FirstOrDefaultAsync(p => p.Id == (int)id);
+        }
+
         public async Task<Project?> GetProjectWithDetailsAsync(int id)
         {
             return await _context.Projects
                 .Include(p => p.Manager)
                 .Include(p => p.LabelClasses)
+                .Include(p => p.ChecklistItems)
                 .Include(p => p.DataItems)
                     .ThenInclude(d => d.Assignments)
                         .ThenInclude(a => a.Annotator)

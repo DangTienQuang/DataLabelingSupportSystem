@@ -1,44 +1,27 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace DTOs.Entities
+﻿namespace DTOs.Entities
 {
     public class Project
     {
-        [Key]
         public int Id { get; set; }
-
-        [Required]
-        [MaxLength(200)]
-        public string Name { get; set; } = string.Empty;
-
-        public string? Description { get; set; }
-
-        public string ManagerId { get; set; } = string.Empty;
-
-        [ForeignKey("ManagerId")]
-        public virtual User? Manager { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
+        public string ManagerId { get; set; }
+        public virtual User Manager { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
         public decimal PricePerLabel { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalBudget { get; set; }
-
-        public string? AnnotationGuide { get; set; }
-        public string? ReviewChecklist { get; set; }
-        public int MaxTaskDurationHours { get; set; } = 24;
-
-        public DateTime Deadline { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime Deadline { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public string AllowGeometryTypes { get; set; }
+        public string AnnotationGuide { get; set; }
+        public int MaxTaskDurationHours { get; set; } = 24;
 
-        public string AllowGeometryTypes { get; set; } = "Rectangle";
+        public int PenaltyUnit { get; set; } = 10;
+
+        public virtual ICollection<ReviewChecklistItem> ChecklistItems { get; set; } = new List<ReviewChecklistItem>();
 
         public virtual ICollection<LabelClass> LabelClasses { get; set; } = new List<LabelClass>();
         public virtual ICollection<DataItem> DataItems { get; set; } = new List<DataItem>();
-
-        public virtual ICollection<UserProjectStat> UserProjectStats { get; set; } = new List<UserProjectStat>();
     }
 }
