@@ -1,4 +1,4 @@
-﻿using DTOs.Entities;
+﻿using Core.Entities;
 
 namespace DAL.Interfaces
 {

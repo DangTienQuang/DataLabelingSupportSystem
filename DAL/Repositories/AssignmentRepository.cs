@@ -1,7 +1,7 @@
 ﻿using Core.DTOs.Responses;
 using DAL.Interfaces;
-using DTOs.Constants;
-using DTOs.Entities;
+using Core.Constants;
+using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Repositories

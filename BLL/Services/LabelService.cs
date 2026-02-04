@@ -2,7 +2,7 @@
 using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using DAL.Interfaces;
-using DTOs.Entities;
+using Core.Entities;
 
 namespace BLL.Services
 {

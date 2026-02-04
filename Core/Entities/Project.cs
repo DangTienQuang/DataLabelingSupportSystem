@@ -1,4 +1,4 @@
-﻿namespace DTOs.Entities
+﻿namespace Core.Entities
 {
     public class Project
     {

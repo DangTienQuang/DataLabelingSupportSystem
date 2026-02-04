@@ -1,7 +1,7 @@
 ﻿using BLL.Interfaces;
 using DAL.Interfaces;
-using DTOs.Constants;
-using DTOs.Entities;
+using Core.Constants;
+using Core.Entities;
 using System.Text.Json;
 using System.Text;
 using Core.DTOs.Requests;

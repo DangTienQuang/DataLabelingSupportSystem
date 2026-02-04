@@ -1,6 +1,6 @@
 ﻿using DAL;
-using DTOs.Constants;
-using DTOs.Entities;
+using Core.Constants;
+using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace API

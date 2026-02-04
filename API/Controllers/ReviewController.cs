@@ -1,7 +1,7 @@
 using BLL.Interfaces;
 using Core.DTOs.Requests;
 using Core.DTOs.Responses;
-using DTOs.Constants;
+using Core.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -25,7 +25,7 @@ namespace API.Controllers
         }
 
         // ======================================================
-        // REVIEWER – TASK REVIEW
+        // REVIEWER â€“ TASK REVIEW
         // ======================================================
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace API.Controllers
         }
 
         // ======================================================
-        // MANAGER – REVIEW AUDIT (RQS)
+        // MANAGER â€“ REVIEW AUDIT (RQS)
         // ======================================================
 
         /// <summary>

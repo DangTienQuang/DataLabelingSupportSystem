@@ -1,4 +1,4 @@
-﻿namespace DTOs.Constants
+﻿namespace Core.Constants
 {
     public static class TaskStatusConstants
     {

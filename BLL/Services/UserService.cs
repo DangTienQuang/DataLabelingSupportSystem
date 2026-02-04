@@ -1,8 +1,8 @@
 ﻿using BLL.Interfaces;
 using Core.DTOs.Requests;
 using DAL.Interfaces;
-using DTOs.Constants;
-using DTOs.Entities;
+using Core.Constants;
+using Core.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;

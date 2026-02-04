@@ -25,7 +25,7 @@ namespace DAL.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("DTOs.Entities.Annotation", b =>
+            modelBuilder.Entity("Core.Entities.Annotation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -61,7 +61,7 @@ namespace DAL.Migrations
                     b.ToTable("Annotations");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Assignment", b =>
+            modelBuilder.Entity("Core.Entities.Assignment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -108,7 +108,7 @@ namespace DAL.Migrations
                     b.ToTable("Assignments");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.DataItem", b =>
+            modelBuilder.Entity("Core.Entities.DataItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -141,7 +141,7 @@ namespace DAL.Migrations
                     b.ToTable("DataItems");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Invoice", b =>
+            modelBuilder.Entity("Core.Entities.Invoice", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -189,7 +189,7 @@ namespace DAL.Migrations
                     b.ToTable("Invoices");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.LabelClass", b =>
+            modelBuilder.Entity("Core.Entities.LabelClass", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -223,7 +223,7 @@ namespace DAL.Migrations
                     b.ToTable("LabelClasses");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.PaymentInfo", b =>
+            modelBuilder.Entity("Core.Entities.PaymentInfo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -255,7 +255,7 @@ namespace DAL.Migrations
                     b.ToTable("PaymentInfos");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Project", b =>
+            modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -316,7 +316,7 @@ namespace DAL.Migrations
                     b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.ReviewChecklistItem", b =>
+            modelBuilder.Entity("Core.Entities.ReviewChecklistItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -348,7 +348,7 @@ namespace DAL.Migrations
                     b.ToTable("ReviewChecklistItems");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.ReviewLog", b =>
+            modelBuilder.Entity("Core.Entities.ReviewLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -398,7 +398,7 @@ namespace DAL.Migrations
                     b.ToTable("ReviewLogs");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.User", b =>
+            modelBuilder.Entity("Core.Entities.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -431,7 +431,7 @@ namespace DAL.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.UserProjectStat", b =>
+            modelBuilder.Entity("Core.Entities.UserProjectStat", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -494,42 +494,42 @@ namespace DAL.Migrations
                     b.ToTable("UserProjectStats");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Annotation", b =>
+            modelBuilder.Entity("Core.Entities.Annotation", b =>
                 {
-                    b.HasOne("DTOs.Entities.Assignment", "Assignment")
+                    b.HasOne("Core.Entities.Assignment", "Assignment")
                         .WithMany("Annotations")
                         .HasForeignKey("AssignmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.LabelClass", null)
+                    b.HasOne("Core.Entities.LabelClass", null)
                         .WithMany("Annotations")
                         .HasForeignKey("LabelClassId");
 
                     b.Navigation("Assignment");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Assignment", b =>
+            modelBuilder.Entity("Core.Entities.Assignment", b =>
                 {
-                    b.HasOne("DTOs.Entities.User", "Annotator")
+                    b.HasOne("Core.Entities.User", "Annotator")
                         .WithMany("Assignments")
                         .HasForeignKey("AnnotatorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.DataItem", "DataItem")
+                    b.HasOne("Core.Entities.DataItem", "DataItem")
                         .WithMany("Assignments")
                         .HasForeignKey("DataItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.User", "Reviewer")
+                    b.HasOne("Core.Entities.User", "Reviewer")
                         .WithMany()
                         .HasForeignKey("ReviewerId");
 
@@ -542,9 +542,9 @@ namespace DAL.Migrations
                     b.Navigation("Reviewer");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.DataItem", b =>
+            modelBuilder.Entity("Core.Entities.DataItem", b =>
                 {
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("DataItems")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -553,15 +553,15 @@ namespace DAL.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Invoice", b =>
+            modelBuilder.Entity("Core.Entities.Invoice", b =>
                 {
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.User", "User")
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("Invoices")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -572,9 +572,9 @@ namespace DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.LabelClass", b =>
+            modelBuilder.Entity("Core.Entities.LabelClass", b =>
                 {
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("LabelClasses")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -583,20 +583,20 @@ namespace DAL.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.PaymentInfo", b =>
+            modelBuilder.Entity("Core.Entities.PaymentInfo", b =>
                 {
-                    b.HasOne("DTOs.Entities.User", "User")
+                    b.HasOne("Core.Entities.User", "User")
                         .WithOne("PaymentInfo")
-                        .HasForeignKey("DTOs.Entities.PaymentInfo", "UserId")
+                        .HasForeignKey("Core.Entities.PaymentInfo", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Project", b =>
+            modelBuilder.Entity("Core.Entities.Project", b =>
                 {
-                    b.HasOne("DTOs.Entities.User", "Manager")
+                    b.HasOne("Core.Entities.User", "Manager")
                         .WithMany("ManagedProjects")
                         .HasForeignKey("ManagerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -605,9 +605,9 @@ namespace DAL.Migrations
                     b.Navigation("Manager");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.ReviewChecklistItem", b =>
+            modelBuilder.Entity("Core.Entities.ReviewChecklistItem", b =>
                 {
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("ChecklistItems")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -616,15 +616,15 @@ namespace DAL.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.ReviewLog", b =>
+            modelBuilder.Entity("Core.Entities.ReviewLog", b =>
                 {
-                    b.HasOne("DTOs.Entities.Assignment", "Assignment")
+                    b.HasOne("Core.Entities.Assignment", "Assignment")
                         .WithMany("ReviewLogs")
                         .HasForeignKey("AssignmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.User", "Reviewer")
+                    b.HasOne("Core.Entities.User", "Reviewer")
                         .WithMany("ReviewsGiven")
                         .HasForeignKey("ReviewerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -635,15 +635,15 @@ namespace DAL.Migrations
                     b.Navigation("Reviewer");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.UserProjectStat", b =>
+            modelBuilder.Entity("Core.Entities.UserProjectStat", b =>
                 {
-                    b.HasOne("DTOs.Entities.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DTOs.Entities.User", "User")
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("ProjectStats")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -654,24 +654,24 @@ namespace DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Assignment", b =>
+            modelBuilder.Entity("Core.Entities.Assignment", b =>
                 {
                     b.Navigation("Annotations");
 
                     b.Navigation("ReviewLogs");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.DataItem", b =>
+            modelBuilder.Entity("Core.Entities.DataItem", b =>
                 {
                     b.Navigation("Assignments");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.LabelClass", b =>
+            modelBuilder.Entity("Core.Entities.LabelClass", b =>
                 {
                     b.Navigation("Annotations");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.Project", b =>
+            modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Navigation("ChecklistItems");
 
@@ -680,7 +680,7 @@ namespace DAL.Migrations
                     b.Navigation("LabelClasses");
                 });
 
-            modelBuilder.Entity("DTOs.Entities.User", b =>
+            modelBuilder.Entity("Core.Entities.User", b =>
                 {
                     b.Navigation("Assignments");
 
