@@ -53,6 +53,7 @@ namespace API.Controllers
                 user.FullName,
                 user.Email,
                 user.Role,
+                user.AvatarUrl,
                 PaymentInfo = user.PaymentInfo != null
                     ? new
                     {
@@ -90,7 +91,36 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
+        [HttpPost("upload-avatar")]
+        public async Task<IActionResult> UploadAvatar(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { Message = "Vui lòng chọn file ảnh." });
 
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                var fileExtension = Path.GetExtension(file.FileName);
+                var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+                var avatarUrl = $"/avatars/{uniqueFileName}";
+                await _userService.UpdateAvatarAsync(userId, avatarUrl);
+
+                return Ok(new { Message = "Upload thành công.", AvatarUrl = avatarUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Lỗi server: " + ex.Message });
+            }
+        }
         /// <summary>
         /// Update payment information of the current user.
         /// </summary>
