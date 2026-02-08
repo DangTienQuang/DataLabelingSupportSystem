@@ -10,5 +10,8 @@ namespace DAL.Interfaces
         Task<Assignment?> GetAssignmentWithDetailsAsync(int id);
         Task<List<DataItem>> GetUnassignedDataItemsAsync(int projectId, int quantity);
         Task<AnnotatorStatsResponse> GetAnnotatorStatsAsync(string annotatorId);
+        Task<List<Assignment>> GetAssignmentsByBucketAsync(int projectId, int bucketId, string userId);
+        Task ResetAssignmentsByProjectAsync(int projectId, string reason);
+        Task<int> CountActiveTasksAsync(int projectId);
     }
 }

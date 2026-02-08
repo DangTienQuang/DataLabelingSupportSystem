@@ -15,19 +15,75 @@ namespace BLL.Services
         private readonly IRepository<Annotation> _annotationRepo;
         private readonly IStatisticService _statisticService;
         private readonly IUserRepository _userRepo;
+        private readonly IProjectRepository _projectRepo;
 
         public TaskService(
             IAssignmentRepository assignmentRepo,
             IRepository<DataItem> dataItemRepo,
             IRepository<Annotation> annotationRepo,
             IStatisticService statisticService,
-            IUserRepository userRepo)
+            IUserRepository userRepo,
+            IProjectRepository projectRepo)
         {
             _assignmentRepo = assignmentRepo;
             _dataItemRepo = dataItemRepo;
             _annotationRepo = annotationRepo;
             _statisticService = statisticService;
             _userRepo = userRepo;
+            _projectRepo = projectRepo;
+        }
+
+        public async Task<List<AssignmentResponse>> GetTasksByBucketAsync(int projectId, int bucketId, string userId)
+        {
+
+            var existingAssignments = await _assignmentRepo.GetAssignmentsByBucketAsync(projectId, bucketId, userId);
+            if (existingAssignments.Any())
+            {
+                return existingAssignments.Select(a => new AssignmentResponse
+                {
+                    Id = a.Id,
+                    DataItemId = a.DataItemId,
+                    DataItemUrl = a.DataItem.StorageUrl,
+                    Status = a.Status,
+                    AssignedDate = a.AssignedDate,
+                    AnnotationData = a.Annotations?
+                        .OrderByDescending(an => an.CreatedAt)
+                        .FirstOrDefault()
+                        ?.DataJSON
+                }).ToList();
+            }
+
+            var dataItems = await _projectRepo.GetDataItemsByBucketIdAsync(projectId, bucketId);
+
+            if (!dataItems.Any())
+                return new List<AssignmentResponse>();
+            var newAssignments = new List<Assignment>();
+            foreach (var item in dataItems)
+            {
+                newAssignments.Add(new Assignment
+                {
+                    ProjectId = projectId,
+                    DataItemId = item.Id,
+                    AnnotatorId = userId,
+                    ReviewerId = null,
+                    Status = TaskStatusConstants.Assigned,
+                    AssignedDate = DateTime.UtcNow
+                });
+            }
+
+            foreach (var assign in newAssignments)
+            {
+                await _assignmentRepo.AddAsync(assign);
+            }
+            await _assignmentRepo.SaveChangesAsync();
+            return newAssignments.Select(a => new AssignmentResponse
+            {
+                Id = a.Id,
+                DataItemId = a.DataItemId,
+                DataItemUrl = dataItems.First(d => d.Id == a.DataItemId).StorageUrl,
+                Status = a.Status,
+                AssignedDate = a.AssignedDate
+            }).ToList();
         }
 
         public async Task AssignTasksToAnnotatorAsync(AssignTaskRequest request)

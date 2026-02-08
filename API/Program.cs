@@ -27,6 +27,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
+builder.Services.AddScoped<IDisputeRepository, DisputeRepository>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
 // --- C. Đăng ký Services (Business Logic) ---
 builder.Services.AddScoped<IUserService, UserService>();
@@ -35,7 +37,8 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IStatisticService, StatisticService>();
-
+builder.Services.AddScoped<IDisputeService, DisputeService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 // --- D. Cấu hình CORS ---
 builder.Services.AddCors(options =>
 {

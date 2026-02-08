@@ -53,7 +53,14 @@ namespace API.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
-
+        [HttpGet("project/{projectId}/bucket/{bucketId}")]
+        [Authorize(Roles = "Annotator,Manager,Admin")]
+        public async Task<IActionResult> GetTasksByBucket(int projectId, int bucketId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var tasks = await _taskService.GetTasksByBucketAsync(projectId, bucketId, userId);
+            return Ok(tasks);
+        }
         // ======================================================
         // ANNOTATOR - DASHBOARD APIs
         // ======================================================

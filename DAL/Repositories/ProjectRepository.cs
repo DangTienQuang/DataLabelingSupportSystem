@@ -16,6 +16,19 @@ namespace DAL.Repositories
                 .Include(p => p.ChecklistItems)
                 .FirstOrDefaultAsync(p => p.Id == (int)id);
         }
+        public async Task<List<DataItem>> GetProjectDataItemsAsync(int projectId)
+        {
+            return await _context.DataItems
+                                 .Where(d => d.ProjectId == projectId)
+                                 .Select(d => new DataItem { Id = d.Id, BucketId = d.BucketId })
+                                 .ToListAsync();
+        }
+        public async Task<List<DataItem>> GetDataItemsByBucketIdAsync(int projectId, int bucketId)
+        {
+            return await _context.DataItems
+                                 .Where(d => d.ProjectId == projectId && d.BucketId == bucketId)
+                                 .ToListAsync();
+        }
 
         public async Task<Project?> GetProjectWithDetailsAsync(int id)
         {

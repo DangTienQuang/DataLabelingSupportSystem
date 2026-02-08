@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Core.Constants;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Entities
@@ -8,19 +9,21 @@ namespace Core.Entities
         [Key]
         public int Id { get; set; }
 
+        [Required]
         public int ProjectId { get; set; }
+
         [ForeignKey("ProjectId")]
-        public virtual Project? Project { get; set; }
+        public Project? Project { get; set; }
 
         [Required]
         public string StorageUrl { get; set; } = string.Empty;
 
-        public string Status { get; set; } = "New";
+        public int BucketId { get; set; } = 1;
 
-        public string MetaData { get; set; } = "{}";
+        public string Status { get; set; } = TaskStatusConstants.New;
 
         public DateTime UploadedDate { get; set; } = DateTime.UtcNow;
-
+        public string? MetaData { get; set; }
         public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
     }
 }

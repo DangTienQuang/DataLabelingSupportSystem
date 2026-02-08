@@ -33,6 +33,15 @@ namespace API.Controllers
             }
         }
 
+        [HttpGet("{projectId}/buckets")]
+        [Authorize(Roles = "Annotator,Manager,Admin")]
+        public async Task<IActionResult> GetBuckets(int projectId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var buckets = await _projectService.GetBucketsAsync(projectId, userId);
+            return Ok(buckets);
+        }
+
         [HttpGet("{projectId}/export")]
         [Authorize(Roles = "Manager,Admin")]
         public async Task<IActionResult> ExportData(int projectId)

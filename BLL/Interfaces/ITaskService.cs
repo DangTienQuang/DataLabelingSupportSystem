@@ -13,5 +13,6 @@ namespace BLL.Interfaces
         Task SaveDraftAsync(string userId, SubmitAnnotationRequest request);
         Task SubmitTaskAsync(string userId, SubmitAnnotationRequest request);
         Task<AssignmentResponse> JumpToDataItemAsync(int projectId, int dataItemId, string userId);
+        Task<List<AssignmentResponse>> GetTasksByBucketAsync(int projectId, int bucketId, string userId);
     }
 }

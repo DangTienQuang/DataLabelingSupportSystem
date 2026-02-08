@@ -9,10 +9,17 @@ namespace BLL.Services
     public class LabelService : ILabelService
     {
         private readonly ILabelRepository _labelRepo;
+        private readonly IAssignmentRepository _assignmentRepo;
+        private readonly IActivityLogService _logService;
 
-        public LabelService(ILabelRepository labelRepo)
+        public LabelService(
+            ILabelRepository labelRepo,
+            IAssignmentRepository assignmentRepo,
+            IActivityLogService logService)
         {
             _labelRepo = labelRepo;
+            _assignmentRepo = assignmentRepo;
+            _logService = logService;
         }
 
         public async Task<LabelResponse> CreateLabelAsync(CreateLabelRequest request)
@@ -30,6 +37,13 @@ namespace BLL.Services
 
             await _labelRepo.AddAsync(label);
             await _labelRepo.SaveChangesAsync();
+            await _logService.LogActionAsync(
+                "System",
+                "Create",
+                "LabelClass",
+                label.Id.ToString(),
+                $"Created label '{label.Name}' for Project {label.ProjectId}"
+            );
 
             return new LabelResponse { Id = label.Id, Name = label.Name, Color = label.Color };
         }
@@ -38,13 +52,34 @@ namespace BLL.Services
         {
             var label = await _labelRepo.GetByIdAsync(labelId);
             if (label == null) throw new Exception("Label not found");
-
+            bool isCriticalChange = label.Name != request.Name || label.GuideLine != request.GuideLine;
+            string oldName = label.Name;
             label.Name = request.Name;
             label.Color = request.Color;
             label.GuideLine = request.GuideLine;
 
             _labelRepo.Update(label);
             await _labelRepo.SaveChangesAsync();
+            if (isCriticalChange)
+            {
+                int activeTasks = await _assignmentRepo.CountActiveTasksAsync(label.ProjectId);
+
+                if (activeTasks > 0)
+                {
+                    await _assignmentRepo.ResetAssignmentsByProjectAsync(
+                        label.ProjectId,
+                        $"AUTO-RESET: Label '{oldName}' updated to '{request.Name}'. Please review."
+                    );
+
+                    await _logService.LogActionAsync(
+                        "System",
+                        "ResetTasks",
+                        "Project",
+                        label.ProjectId.ToString(),
+                        $"Reset {activeTasks} tasks because Label '{oldName}' was updated."
+                    );
+                }
+            }
 
             return new LabelResponse { Id = label.Id, Name = label.Name, Color = label.Color };
         }
@@ -53,6 +88,22 @@ namespace BLL.Services
         {
             var label = await _labelRepo.GetByIdAsync(labelId);
             if (label == null) throw new Exception("Label not found");
+            int activeTasks = await _assignmentRepo.CountActiveTasksAsync(label.ProjectId);
+            if (activeTasks > 0)
+            {
+                await _assignmentRepo.ResetAssignmentsByProjectAsync(
+                    label.ProjectId,
+                    $"AUTO-RESET: Label '{label.Name}' was deleted. Please review annotations."
+                );
+
+                await _logService.LogActionAsync(
+                    "System",
+                    "ResetTasks",
+                    "Project",
+                    label.ProjectId.ToString(),
+                    $"Reset {activeTasks} tasks because Label '{label.Name}' was deleted."
+                );
+            }
 
             _labelRepo.Delete(label);
             await _labelRepo.SaveChangesAsync();

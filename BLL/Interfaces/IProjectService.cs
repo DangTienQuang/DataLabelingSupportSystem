@@ -13,7 +13,7 @@ namespace BLL.Interfaces
         Task<List<ProjectSummaryResponse>> GetProjectsByManagerAsync(string managerId);
         Task UpdateProjectAsync(int projectId, UpdateProjectRequest request);
         Task DeleteProjectAsync(int projectId);
-
+        Task<List<Core.DTOs.Responses.BucketResponse>> GetBucketsAsync(int projectId, string userId);
         Task<byte[]> ExportProjectDataAsync(int projectId, string userId);
         Task<ProjectStatisticsResponse> GetProjectStatisticsAsync(int projectId);
         Task GenerateInvoicesAsync(int projectId);

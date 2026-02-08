@@ -208,20 +208,25 @@ namespace BLL.Services
         {
             var project = await _projectRepository.GetByIdAsync(projectId);
             if (project == null) throw new Exception("Project not found");
-
+            int currentTotalItems = project.DataItems.Count;
+            int bucketSize = 50;
             foreach (var url in storageUrls)
             {
-                project.DataItems.Add(new DataItem
+                currentTotalItems++;
+                int bucketId = (currentTotalItems - 1) / bucketSize + 1;
+
+                var dataItem = new DataItem
                 {
                     ProjectId = projectId,
                     StorageUrl = url,
+                    UploadedDate = DateTime.UtcNow,
                     Status = TaskStatusConstants.New,
+                    BucketId = bucketId,
                     MetaData = "{}",
-                    UploadedDate = DateTime.UtcNow
-                });
+                    Assignments = new List<Assignment>()
+                };
+                project.DataItems.Add(dataItem);
             }
-
-            _projectRepository.Update(project);
             await _projectRepository.SaveChangesAsync();
         }
 
@@ -472,6 +477,24 @@ namespace BLL.Services
                                        .Distinct()
                                        .Count()
             };
+        }
+        public async Task<List<Core.DTOs.Responses.BucketResponse>> GetBucketsAsync(int projectId, string userId)
+        {
+            var dataItems = await _projectRepository.GetProjectDataItemsAsync(projectId);
+
+            if (!dataItems.Any()) return new List<Core.DTOs.Responses.BucketResponse>();
+            var buckets = dataItems.GroupBy(d => d.BucketId)
+                                   .OrderBy(g => g.Key)
+                                   .Select(g => new Core.DTOs.Responses.BucketResponse
+                                   {
+                                       BucketId = g.Key,
+                                       Name = $"Lô số {g.Key}",
+                                       TotalItems = g.Count(),
+                                       CompletedItems = 0,
+                                       Status = "New"
+                                   }).ToList();
+
+            return buckets;
         }
     }
 }
