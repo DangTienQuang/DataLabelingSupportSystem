@@ -1,17 +1,23 @@
 ﻿using BLL.Interfaces;
 using Core.DTOs.Requests;
+using Core.DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.IO;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
     /// <summary>
     /// Controller for managing user profiles and user administration.
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/users")]
     [ApiController]
     [Authorize]
+    [Tags("2. User Management")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -26,7 +32,7 @@ namespace API.Controllers
         // ======================================================
 
         /// <summary>
-        /// Get the profile of the currently logged-in user.
+        /// Retrieves the profile of the currently logged-in user.
         /// </summary>
         /// <remarks>
         /// Returns basic user information and payment details (if available).
@@ -35,17 +41,17 @@ namespace API.Controllers
         /// <response code="200">Profile retrieved successfully.</response>
         /// <response code="401">User is not authenticated.</response>
         /// <response code="404">User not found.</response>
-        [HttpGet("profile")]
+        [HttpGet("me")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 404)]
-        [ProducesResponseType(typeof(void), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 404)]
         public async Task<IActionResult> GetMyProfile()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var user = await _userService.GetUserByIdAsync(userId);
-            if (user == null) return NotFound(new { Message = "User not found." });
+            if (user == null) return NotFound(new ErrorResponse { Message = "User not found." });
 
             return Ok(new
             {
@@ -66,16 +72,19 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Update profile information of the current user.
+        /// Updates the profile information of the current user.
         /// </summary>
         /// <remarks>
-        /// Allows updating full name and avatar.
+        /// Allows updating the full name and avatar URL.
         /// </remarks>
         /// <param name="request">Profile update payload.</param>
         /// <response code="200">Profile updated successfully.</response>
         /// <response code="400">Update failed.</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpPut("profile")]
+        [HttpPut("me")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -88,14 +97,30 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
-        [HttpPost("upload-avatar")]
+
+        /// <summary>
+        /// Uploads an avatar image for the current user.
+        /// </summary>
+        /// <remarks>
+        /// Saves the image to the server and updates the user's AvatarUrl.
+        /// </remarks>
+        /// <param name="file">The image file to upload.</param>
+        /// <response code="200">Avatar uploaded successfully.</response>
+        /// <response code="400">No file selected or invalid file.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="500">Internal server error during upload.</response>
+        [HttpPost("me/avatar")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 500)]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest(new { Message = "Vui lòng chọn file ảnh." });
+                return BadRequest(new ErrorResponse { Message = "Please select an image file." });
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
@@ -104,34 +129,38 @@ namespace API.Controllers
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars");
                 if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
                 var fileExtension = Path.GetExtension(file.FileName);
                 var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(fileStream);
                 }
+
                 var avatarUrl = $"/avatars/{uniqueFileName}";
                 await _userService.UpdateAvatarAsync(userId, avatarUrl);
 
-                return Ok(new { Message = "Upload thành công.", AvatarUrl = avatarUrl });
+                return Ok(new { Message = "Avatar uploaded successfully.", AvatarUrl = avatarUrl });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Lỗi server: " + ex.Message });
+                return StatusCode(500, new ErrorResponse { Message = "Server error: " + ex.Message });
             }
         }
+
         /// <summary>
-        /// Update payment information of the current user.
+        /// Updates the payment information of the current user.
         /// </summary>
         /// <param name="request">Payment information update request.</param>
         /// <response code="200">Payment information updated successfully.</response>
         /// <response code="400">Update failed.</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpPut("payment")]
+        [HttpPut("me/payment")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
-        [ProducesResponseType(typeof(void), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> UpdateMyPaymentInfo([FromBody] UpdatePaymentRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -149,7 +178,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
@@ -158,13 +187,16 @@ namespace API.Controllers
         // ======================================================
 
         /// <summary>
-        /// Change password of the current user.
+        /// Changes the password of the current user.
         /// </summary>
-        /// <param name="request">Old and new password.</param>
+        /// <param name="request">Payload containing the old and new passwords.</param>
         /// <response code="200">Password changed successfully.</response>
-        /// <response code="400">Password change failed.</response>
+        /// <response code="400">Password change failed (e.g., incorrect old password).</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpPost("change-password")]
+        [HttpPut("me/password")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -181,7 +213,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
@@ -189,33 +221,55 @@ namespace API.Controllers
         // ADMIN / MANAGER MANAGEMENT
         // ======================================================
 
+        /// <summary>
+        /// Imports users from an uploaded Excel file.
+        /// </summary>
+        /// <remarks>
+        /// Admin only. Reads an .xlsx file and batch-creates user accounts.
+        /// </remarks>
+        /// <param name="file">The Excel file (.xlsx) containing user data.</param>
+        /// <response code="200">Users imported successfully.</response>
+        /// <response code="400">Invalid file format or missing file.</response>
+        /// <response code="401">User is not authorized.</response>
         [HttpPost("import")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> ImportUsers(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("Vui lòng đính kèm file Excel.");
+                return BadRequest(new ErrorResponse { Message = "Please attach an Excel file." });
 
             if (!file.FileName.EndsWith(".xlsx"))
-                return BadRequest("Hệ thống chỉ hỗ trợ định dạng file Excel (.xlsx).");
+                return BadRequest(new ErrorResponse { Message = "The system only supports Excel files (.xlsx)." });
 
             var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var result = await _userService.ImportUsersFromExcelAsync(file, adminId);
-
-            return Ok(result);
+            try
+            {
+                var result = await _userService.ImportUsersFromExcelAsync(file, adminId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
         }
+
         /// <summary>
-        /// Get all users in the system.
+        /// Retrieves all users in the system.
         /// </summary>
         /// <remarks>
         /// Accessible by Admin and Manager roles.
         /// </remarks>
-        /// <returns>List of users.</returns>
+        /// <returns>A list of all users.</returns>
         /// <response code="200">Users retrieved successfully.</response>
         /// <response code="401">User is not authorized.</response>
         [HttpGet]
         [Authorize(Roles = "Admin,Manager")]
+        [ProducesResponseType(typeof(object), 200)] // Consider replacing 'object' with your specific DTO list
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _userService.GetAllUsersAsync();
@@ -223,20 +277,20 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Create a new user account.
+        /// Creates a new user account manually.
         /// </summary>
         /// <remarks>
         /// Admin only.
         /// </remarks>
         /// <param name="request">User registration data.</param>
         /// <response code="200">User created successfully.</response>
-        /// <response code="400">User creation failed.</response>
+        /// <response code="400">User creation failed (e.g., email already exists).</response>
         /// <response code="401">User is not authorized.</response>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
-        [ProducesResponseType(typeof(void), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> CreateUser([FromBody] RegisterRequest request)
         {
             try
@@ -256,23 +310,26 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
         /// <summary>
-        /// Update an existing user.
+        /// Updates an existing user's details.
         /// </summary>
         /// <remarks>
         /// Admin only.
         /// </remarks>
-        /// <param name="id">Target user ID.</param>
+        /// <param name="id">The target user ID.</param>
         /// <param name="request">Update payload.</param>
         /// <response code="200">User updated successfully.</response>
         /// <response code="400">Update failed.</response>
         /// <response code="401">User is not authorized.</response>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
             try
@@ -282,23 +339,26 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
         /// <summary>
-        /// Activate or deactivate a user account.
+        /// Activates or deactivates a user account.
         /// </summary>
         /// <remarks>
         /// Admin only.
         /// </remarks>
-        /// <param name="id">Target user ID.</param>
-        /// <param name="isActive">Desired account status.</param>
+        /// <param name="id">The target user ID.</param>
+        /// <param name="isActive">The desired account status boolean.</param>
         /// <response code="200">User status updated successfully.</response>
         /// <response code="400">Operation failed.</response>
         /// <response code="401">User is not authorized.</response>
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> ToggleUserStatus(string id, [FromQuery] bool isActive)
         {
             try
@@ -309,22 +369,25 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
         /// <summary>
-        /// Delete (deactivate) a user account.
+        /// Deletes (deactivates) a user account.
         /// </summary>
         /// <remarks>
-        /// Admin only.
+        /// Admin only. This is typically a soft delete in the system.
         /// </remarks>
-        /// <param name="id">Target user ID.</param>
+        /// <param name="id">The target user ID.</param>
         /// <response code="200">User deleted successfully.</response>
         /// <response code="400">Deletion failed.</response>
         /// <response code="401">User is not authorized.</response>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -334,7 +397,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
     }

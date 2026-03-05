@@ -3,7 +3,11 @@ using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
@@ -11,9 +15,10 @@ namespace API.Controllers
     /// Controller for managing annotation tasks,
     /// including task assignment by Managers and task execution by Annotators.
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/tasks")]
     [ApiController]
     [Authorize]
+    [Tags("4. Task & Annotation")]
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _taskService;
@@ -28,19 +33,21 @@ namespace API.Controllers
         // ======================================================
 
         /// <summary>
-        /// (Manager) Assign annotation tasks to an Annotator and a Reviewer.
+        /// Assigns annotation tasks to an Annotator and a Reviewer.
         /// </summary>
-        /// <param name="request">
-        /// Assignment information including ProjectId, AnnotatorId, ReviewerId, and number of images.
-        /// </param>
-        /// <returns>Assignment result message.</returns>
+        /// <remarks>
+        /// Used by Managers to distribute data items to team members.
+        /// </remarks>
+        /// <param name="request">Assignment payload including ProjectId, AnnotatorId, ReviewerId, and the number of images.</param>
+        /// <returns>A confirmation message.</returns>
         /// <response code="200">Tasks assigned successfully.</response>
-        /// <response code="400">Assignment failed (e.g. insufficient images, user not found).</response>
-        /// <response code="401">User is not authorized as Manager.</response>
-        [HttpPost("assign")]
+        /// <response code="400">Assignment failed (e.g., insufficient images, user not found).</response>
+        /// <response code="401">User is not authorized as a Manager.</response>
+        [HttpPost("assignments")]
         [Authorize(Roles = "Manager")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> AssignTasks([FromBody] AssignTaskRequest request)
         {
             try
@@ -50,35 +57,60 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
-        [HttpGet("project/{projectId}/bucket/{bucketId}")]
+
+        /// <summary>
+        /// Retrieves tasks filtered by a specific bucket within a project.
+        /// </summary>
+        /// <remarks>
+        /// Useful for paginated or bucketed navigation of tasks.
+        /// </remarks>
+        /// <param name="projectId">The target project ID.</param>
+        /// <param name="bucketId">The target bucket ID.</param>
+        /// <returns>A list of tasks inside the requested bucket.</returns>
+        /// <response code="200">Tasks retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve tasks.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpGet("projects/{projectId}/buckets/{bucketId}")]
         [Authorize(Roles = "Annotator,Manager,Admin")]
+        [ProducesResponseType(typeof(object), 200)] // Consider replacing 'object' with your specific DTO
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetTasksByBucket(int projectId, int bucketId)
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var tasks = await _taskService.GetTasksByBucketAsync(projectId, bucketId, userId);
-            return Ok(tasks);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var tasks = await _taskService.GetTasksByBucketAsync(projectId, bucketId, userId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
         }
+
         // ======================================================
         // ANNOTATOR - DASHBOARD APIs
         // ======================================================
 
         /// <summary>
-        /// (Annotator - Dashboard) Get list of assigned projects.
+        /// Gets a list of assigned projects for the current Annotator.
         /// </summary>
         /// <remarks>
-        /// Used on the main Dashboard screen.
-        /// Assignments are grouped into Project Cards.
-        /// Returns overall progress, deadline, and project status.
+        /// Used on the main Dashboard screen. Assignments are grouped into Project Cards.
+        /// Returns overall progress, deadlines, and project status.
         /// </remarks>
-        /// <returns>List of projects assigned to the current user.</returns>
+        /// <returns>A list of projects assigned to the current user.</returns>
         /// <response code="200">Projects retrieved successfully.</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpGet("my-projects")]
+        [HttpGet("projects")]
         [ProducesResponseType(typeof(List<AssignedProjectResponse>), 200)]
-        [ProducesResponseType(typeof(void), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetMyProjects()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -91,16 +123,30 @@ namespace API.Controllers
         // ======================================================
         // ANNOTATOR - WORK AREA APIs
         // ======================================================
-        [HttpPost("submit-multiple")]
+
+        /// <summary>
+        /// Submits multiple tasks at once (Batch Submission).
+        /// </summary>
+        /// <remarks>
+        /// Typically used when an annotator selects multiple images and submits them simultaneously.
+        /// </remarks>
+        /// <param name="request">Payload containing a list of Assignment IDs.</param>
+        /// <returns>A result summary of the batch submission.</returns>
+        /// <response code="200">Batch submission successful.</response>
+        /// <response code="400">Assignment list is empty or submission failed.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpPost("submissions/batch")]
         [Authorize(Roles = "Annotator")]
+        [ProducesResponseType(typeof(object), 200)] // Consider replacing 'object' with your specific DTO
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> SubmitMultipleTasks([FromBody] SubmitMultipleTasksRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             if (request.AssignmentIds == null || !request.AssignmentIds.Any())
-                return BadRequest(new { Message = "Assignment list cannot be empty." });
+                return BadRequest(new ErrorResponse { Message = "Assignment list cannot be empty." });
 
             try
             {
@@ -109,45 +155,58 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
+
         /// <summary>
-        /// (Annotator - Work Area) Get all images (assignments) of a project.
+        /// Retrieves all images (assignments) for a specific project.
         /// </summary>
         /// <remarks>
-        /// Called when the user enters a project.
-        /// Returns the full assignment list so FE can handle Next / Previous navigation.
+        /// Called when the user enters a project workspace. 
+        /// Returns the full assignment list so the frontend can handle Next/Previous navigation locally.
         /// </remarks>
-        /// <param name="projectId">Target project ID.</param>
-        /// <returns>List of assignments with status and existing annotation data.</returns>
+        /// <param name="projectId">The target project ID.</param>
+        /// <returns>A list of assignments with statuses and existing annotation data.</returns>
         /// <response code="200">Images retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve images.</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpGet("project/{projectId}/images")]
+        [HttpGet("projects/{projectId}/images")]
         [ProducesResponseType(typeof(List<AssignmentResponse>), 200)]
-        [ProducesResponseType(typeof(void), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetProjectImages(int projectId)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            var images = await _taskService.GetTaskImagesAsync(projectId, userId);
-            return Ok(images);
+            try
+            {
+                var images = await _taskService.GetTaskImagesAsync(projectId, userId);
+                return Ok(images);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
         }
 
         /// <summary>
-        /// (Annotator) Jump to a specific image inside a project.
+        /// Retrieves assignment details for a specific data item to jump directly to it.
         /// </summary>
         /// <remarks>
-        /// Used for navigation scenarios such as:
-        /// - Clicking an error notification
-        /// - Refreshing the page (F5)
+        /// Used for navigation scenarios such as clicking an error notification or refreshing the page.
         /// </remarks>
-        /// <param name="projectId">Project ID.</param>
-        /// <param name="dataItemId">Target data item ID.</param>
-        /// <returns>Assignment detail.</returns>
-        [HttpGet("project/{projectId}/jump/{dataItemId}")]
+        /// <param name="projectId">The project ID.</param>
+        /// <param name="dataItemId">The target data item ID.</param>
+        /// <returns>The detailed assignment for the requested image.</returns>
+        /// <response code="200">Assignment retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve assignment.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpGet("projects/{projectId}/items/{dataItemId}")]
         [ProducesResponseType(typeof(AssignmentResponse), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> JumpToImage(int projectId, int dataItemId)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -160,21 +219,27 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
         /// <summary>
-        /// (Annotator) Get a single assignment by AssignmentId.
+        /// Retrieves a single assignment by its ID.
         /// </summary>
         /// <remarks>
-        /// Used when navigating directly to a specific image.
+        /// Used when navigating directly to a specific assignment.
         /// </remarks>
-        /// <param name="id">Assignment ID.</param>
-        /// <returns>Assignment detail including image and annotation data.</returns>
-        [HttpGet("assignment/{id}")]
+        /// <param name="id">The assignment ID.</param>
+        /// <returns>Assignment details including image and annotation data.</returns>
+        /// <response code="200">Assignment retrieved successfully.</response>
+        /// <response code="400">Invalid request parameters.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="404">Assignment not found.</response>
+        [HttpGet("assignments/{id}")]
         [ProducesResponseType(typeof(AssignmentResponse), 200)]
-        [ProducesResponseType(typeof(object), 404)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 404)]
         public async Task<IActionResult> GetSingleAssignment(int id)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -187,7 +252,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
@@ -196,21 +261,21 @@ namespace API.Controllers
         // ======================================================
 
         /// <summary>
-        /// (Annotator) Save annotation draft.
+        /// Saves an annotation draft without submitting it.
         /// </summary>
         /// <remarks>
-        /// Called when the user clicks "Next" or "Save".
-        /// Updates annotation data (DataJSON) and sets status to 'InProgress'.
+        /// Called when the user clicks "Next" or "Save". Updates the annotation data (Canvas JSON) 
+        /// and sets the status to 'InProgress'.
         /// </remarks>
-        /// <param name="request">
-        /// Contains AssignmentId and annotation data (Canvas JSON).
-        /// </param>
-        /// <returns>Save result.</returns>
+        /// <param name="request">Payload containing AssignmentId and annotation data.</param>
+        /// <returns>A save confirmation message.</returns>
         /// <response code="200">Draft saved successfully.</response>
         /// <response code="400">Invalid input data.</response>
-        [HttpPost("save-draft")]
+        /// <response code="401">User is not authenticated.</response>
+        [HttpPut("drafts")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> SaveDraft([FromBody] SubmitAnnotationRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -223,26 +288,25 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
         /// <summary>
-        /// (Annotator) Submit annotation for review.
+        /// Submits an annotation task for review.
         /// </summary>
         /// <remarks>
-        /// Called when the user clicks "Submit".
-        /// Updates annotation data and sets status to 'Submitted'.
+        /// Called when the user clicks "Submit". Updates the annotation data and sets the status to 'Submitted'.
         /// </remarks>
-        /// <param name="request">
-        /// Contains AssignmentId and final annotation data.
-        /// </param>
-        /// <returns>Submit result.</returns>
+        /// <param name="request">Payload containing AssignmentId and final annotation data.</param>
+        /// <returns>A submit confirmation message.</returns>
         /// <response code="200">Task submitted successfully.</response>
-        /// <response code="400">Submission failed.</response>
-        [HttpPost("submit")]
+        /// <response code="400">Submission failed (e.g., missing required labels).</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpPost("submissions")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> SubmitTask([FromBody] SubmitAnnotationRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -255,7 +319,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
     }

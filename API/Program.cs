@@ -13,15 +13,9 @@ using API;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==================================================================
-// 1. CẤU HÌNH SERVICES (DEPENDENCY INJECTION)
-// ==================================================================
-
-// --- A. Database Context ---
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- B. Đăng ký Repositories ---
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
@@ -30,7 +24,6 @@ builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<IDisputeRepository, DisputeRepository>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
-// --- C. Đăng ký Services (Business Logic) ---
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
@@ -39,7 +32,7 @@ builder.Services.AddScoped<ILabelService, LabelService>();
 builder.Services.AddScoped<IStatisticService, StatisticService>();
 builder.Services.AddScoped<IDisputeService, DisputeService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
-// --- D. Cấu hình CORS ---
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -48,7 +41,6 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
-// --- E. Cấu hình Authentication (JWT) ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SecretKeyMustBeLongerThan16Characters");
 
@@ -73,22 +65,29 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// --- F. Cấu hình Controllers & Swagger ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Data Labeling API", Version = "v1" });
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
+
+    var apiXmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var apiXmlPath = Path.Combine(AppContext.BaseDirectory, apiXmlFile);
+    if (File.Exists(apiXmlPath))
     {
-        c.IncludeXmlComments(xmlPath);
+        c.IncludeXmlComments(apiXmlPath);
+    }
+
+    var coreXmlFile = "Core.xml";
+    var coreXmlPath = Path.Combine(AppContext.BaseDirectory, coreXmlFile);
+    if (File.Exists(coreXmlPath))
+    {
+        c.IncludeXmlComments(coreXmlPath);
     }
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Nhập token của bạn vào bên dưới (không cần gõ Bearer)",
+        Description = "Enter your token below (do not type 'Bearer ').",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -110,10 +109,6 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ==================================================================
-// 2. CẤU HÌNH HTTP REQUEST PIPELINE (MIDDLEWARES)
-// ==================================================================
-
 app.UseMiddleware<ExceptionMiddleware>();
 
 using (var scope = app.Services.CreateScope())
@@ -129,7 +124,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Lỗi xảy ra khi khởi tạo dữ liệu ban đầu.");
+        logger.LogError(ex, "An error occurred while seeding the initial data.");
     }
 }
 

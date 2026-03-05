@@ -4,17 +4,21 @@ using Core.DTOs.Responses;
 using Core.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
     /// <summary>
-    /// Controller responsible for reviewing annotation tasks
+    /// Controller responsible for managing task reviews, fetching review queues, 
     /// and auditing reviewer quality.
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/reviews")]
     [ApiController]
     [Authorize]
+    [Tags("5. Review & QA")]
     public class ReviewController : ControllerBase
     {
         private readonly IReviewService _reviewService;
@@ -25,12 +29,24 @@ namespace API.Controllers
         }
 
         // ======================================================
-        // REVIEWER – TASK REVIEW
+        // REVIEW QUEUE & LOOKUP
         // ======================================================
+
+        /// <summary>
+        /// Retrieves a list of assigned projects that have tasks pending review.
+        /// </summary>
+        /// <remarks>
+        /// Used by Reviewers to view their project queue on the dashboard.
+        /// </remarks>
+        /// <returns>A list of projects with pending review tasks.</returns>
+        /// <response code="200">Projects retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve projects.</response>
+        /// <response code="401">User is not authenticated.</response>
         [HttpGet("projects")]
         [Authorize(Roles = "Reviewer,Manager,Admin")]
         [ProducesResponseType(typeof(IEnumerable<AssignedProjectResponse>), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetReviewerProjects()
         {
             var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -43,27 +59,62 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
+
         /// <summary>
-        /// Submit a review decision for an assignment.
+        /// Gets tasks that are pending review for a specific project.
         /// </summary>
         /// <remarks>
-        /// Reviewer can approve or reject a submitted annotation.
+        /// Used for loading the review workspace for a specific project.
         /// </remarks>
-        /// <param name="request">
-        /// Review payload including AssignmentId, approval decision,
-        /// error categories, and reviewer comments.
-        /// </param>
-        /// <returns>Review result message.</returns>
-        /// <response code="200">Review submitted successfully.</response>
-        /// <response code="400">Review submission failed.</response>
+        /// <param name="projectId">The ID of the target project.</param>
+        /// <returns>A list of assignments awaiting review.</returns>
+        /// <response code="200">Tasks retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve tasks.</response>
         /// <response code="401">User is not authenticated.</response>
-        [HttpPost("submit")]
+        [HttpGet("projects/{projectId}/tasks")]
         [Authorize(Roles = "Reviewer,Manager,Admin")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(IEnumerable<TaskResponse>), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
+        public async Task<IActionResult> GetTasksForReview(int projectId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var tasks = await _reviewService.GetTasksForReviewAsync(projectId, userId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
+        }
+
+        // ======================================================
+        // REVIEWER – TASK REVIEW
+        // ======================================================
+
+        /// <summary>
+        /// Submits a review decision (Approve/Reject) for an assignment.
+        /// </summary>
+        /// <remarks>
+        /// Submitting a rejection requires specifying an error category and leaving a comment.
+        /// </remarks>
+        /// <param name="request">Review payload including the assignment ID, decision, error categories, and comments.</param>
+        /// <returns>A confirmation message indicating the result.</returns>
+        /// <response code="200">Review submitted successfully.</response>
+        /// <response code="400">Validation failed or invalid task status.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpPost]
+        [Authorize(Roles = "Reviewer,Manager,Admin")]
+        [ProducesResponseType(typeof(object), 200)] // Consider changing 'object' to a specific response DTO if available
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> ReviewTask([FromBody] ReviewRequest request)
         {
             var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -79,7 +130,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
@@ -88,23 +139,22 @@ namespace API.Controllers
         // ======================================================
 
         /// <summary>
-        /// Audit a past review to evaluate reviewer quality (RQS).
+        /// Audits a past review to evaluate reviewer quality (RQS).
         /// </summary>
         /// <remarks>
-        /// Manager evaluates whether they agree with the reviewer's decision.
-        /// This data is used to calculate Reviewer Quality Score (RQS).
+        /// Managers evaluate whether they agree with the reviewer's decision. 
+        /// This data dynamically updates the Reviewer Quality Score (RQS).
         /// </remarks>
-        /// <param name="request">
-        /// Audit payload including ReviewLogId and audit decision.
-        /// </param>
-        /// <returns>Audit confirmation message.</returns>
+        /// <param name="request">Payload containing the review log ID and audit decision.</param>
+        /// <returns>An audit confirmation message.</returns>
         /// <response code="200">Audit recorded successfully.</response>
-        /// <response code="400">Audit failed.</response>
+        /// <response code="400">Audit failed or already audited.</response>
         /// <response code="401">User is not authorized.</response>
-        [HttpPost("audit")]
+        [HttpPost("audits")]
         [Authorize(Roles = "Manager,Admin")]
         [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> AuditReview([FromBody] AuditReviewRequest request)
         {
             var managerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -117,41 +167,7 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Message = ex.Message });
-            }
-        }
-
-        // ======================================================
-        // REVIEW QUEUE & LOOKUP
-        // ======================================================
-
-        /// <summary>
-        /// Get assignments that are pending review for a specific project.
-        /// </summary>
-        /// <remarks>
-        /// Used for Reviewer / Manager review queue screens.
-        /// </remarks>
-        /// <param name="projectId">Target project ID.</param>
-        /// <returns>List of assignments awaiting review.</returns>
-        /// <response code="200">Tasks retrieved successfully.</response>
-        /// <response code="400">Failed to retrieve tasks.</response>
-        [HttpGet("project/{projectId}")]
-        [Authorize(Roles = "Reviewer,Manager,Admin")]
-        [ProducesResponseType(typeof(IEnumerable<TaskResponse>), 200)]
-        [ProducesResponseType(typeof(object), 400)]
-        public async Task<IActionResult> GetTasksForReview(int projectId)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            try
-            {
-                var tasks = await _reviewService.GetTasksForReviewAsync(projectId, userId);
-                return Ok(tasks);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
     }
