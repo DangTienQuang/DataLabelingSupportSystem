@@ -211,7 +211,9 @@ namespace BLL.Services
                         Color = l.Color,
                         GuideLine = l.GuideLine
                     }).ToList() ?? new List<LabelResponse>(),
-                    ExistingAnnotations = annotationJson != null ? new List<object> { annotationJson } : new List<object>()
+                    ExistingAnnotations = annotationJson != null ? new List<object> { annotationJson } : new List<object>(),
+                    ReviewerId = a.ReviewerId,
+                    ReviewerName = a.Reviewer?.FullName ?? "Unknown"
                 };
             }).ToList();
         }

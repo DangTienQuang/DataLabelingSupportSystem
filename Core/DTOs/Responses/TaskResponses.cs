@@ -56,6 +56,16 @@ namespace Core.DTOs.Responses
         /// Existing annotations for this task, if any.
         /// </summary>
         public List<object>? ExistingAnnotations { get; set; }
+
+        /// <summary>
+        /// The ID of the reviewer assigned to this task.
+        /// </summary>
+        public string? ReviewerId { get; set; }
+
+        /// <summary>
+        /// The display name of the reviewer.
+        /// </summary>
+        public string? ReviewerName { get; set; }
     }
 
     /// <summary>

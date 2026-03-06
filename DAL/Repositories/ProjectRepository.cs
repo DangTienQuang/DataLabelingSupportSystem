@@ -1,6 +1,8 @@
 ﻿using DAL.Interfaces;
 using Core.Entities;
+using Core.Constants;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace DAL.Repositories
 {
@@ -71,11 +73,46 @@ namespace DAL.Repositories
 
         public async Task<Dictionary<int, int>> GetProjectLabelCountsAsync(int projectId)
         {
-            return await _context.Annotations
-                .Where(a => a.Assignment.ProjectId == projectId && a.ClassId.HasValue)
-                .GroupBy(a => a.ClassId.Value)
-                .Select(g => new { ClassId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.ClassId, x => x.Count);
+            var annotations = await _context.Annotations
+                .Where(a => a.Assignment.ProjectId == projectId
+                         && a.Assignment.Status == TaskStatusConstants.Approved)
+                .Select(a => a.DataJSON)
+                .ToListAsync();
+
+            var labelCounts = new Dictionary<int, int>();
+
+            foreach (var json in annotations)
+            {
+                if (string.IsNullOrEmpty(json)) continue;
+
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("annotations", out var annotationsArray)
+                        && annotationsArray.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in annotationsArray.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("labelId", out var labelIdProp)
+                                && labelIdProp.TryGetInt32(out int labelId))
+                            {
+                                if (labelCounts.ContainsKey(labelId))
+                                    labelCounts[labelId]++;
+                                else
+                                    labelCounts[labelId] = 1;
+                            }
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    continue;
+                }
+            }
+
+            return labelCounts;
         }
 
         public async Task<List<Project>> GetProjectsByManagerIdAsync(string managerId)
