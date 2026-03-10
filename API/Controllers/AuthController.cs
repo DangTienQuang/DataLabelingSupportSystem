@@ -95,7 +95,12 @@ namespace API.Controllers
                 if (token == null)
                     return Unauthorized(new ErrorResponse { Message = "Invalid email or password." });
 
-                return Ok(new { Token = token });
+                return Ok(new
+                {
+                    Message = "Login successful.",
+                    AccessToken = token,
+                    TokenType = "Bearer"
+                });
             }
             catch (ArgumentException)
             {
