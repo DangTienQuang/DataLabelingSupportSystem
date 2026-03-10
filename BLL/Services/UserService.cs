@@ -126,7 +126,17 @@ namespace BLL.Services
         public async Task<PagedResponse<UserResponse>> GetAllUsersAsync(int page, int pageSize)
         {
             var allUsers = await _userRepository.GetAllAsync();
+
             var totalCount = allUsers.Count();
+
+            var stats = new
+            {
+                TotalAdmins = allUsers.Count(u => u.Role == "Admin"),
+                TotalManagers = allUsers.Count(u => u.Role == "Manager"),
+                TotalReviewers = allUsers.Count(u => u.Role == "Reviewer"),
+                TotalAnnotators = allUsers.Count(u => u.Role == "Annotator")
+            };
+
             var items = allUsers
                 .OrderByDescending(u => u.Id)
                 .Skip((page - 1) * pageSize)
@@ -138,7 +148,8 @@ namespace BLL.Services
                     Email = u.Email ?? "",
                     Role = u.Role ?? "",
                     AvatarUrl = u.AvatarUrl ?? "",
-                    IsActive = u.IsActive
+                    IsActive = u.IsActive,
+                    ManagerId = u.ManagerId
                 }).ToList();
 
             return new PagedResponse<UserResponse>
@@ -146,6 +157,7 @@ namespace BLL.Services
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
+                Stats = stats,
                 Items = items
             };
         }
