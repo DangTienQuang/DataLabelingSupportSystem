@@ -221,9 +221,15 @@ namespace BLL.Services
             {
                 var latestAnnotation = a.Annotations?.OrderByDescending(an => an.CreatedAt).FirstOrDefault();
                 object? annotationJson = null;
-                if (latestAnnotation != null && !string.IsNullOrEmpty(latestAnnotation.DataJSON))
+                if (latestAnnotation != null)
                 {
-                    try { annotationJson = JsonDocument.Parse(latestAnnotation.DataJSON).RootElement; } catch { }
+                    if (!string.IsNullOrEmpty(latestAnnotation.DataJSON))
+                    {
+                        try { annotationJson = JsonDocument.Parse(latestAnnotation.DataJSON).RootElement; } catch { }
+                    }
+                    else if (a.Annotations != null && a.Annotations.Any())
+                    {
+                    }
                 }
 
                 return new TaskResponse
@@ -232,17 +238,16 @@ namespace BLL.Services
                     DataItemId = a.DataItemId,
                     StorageUrl = a.DataItem?.StorageUrl ?? "",
                     ProjectName = a.Project?.Name ?? "",
-                    Status = a.Status ?? "",
+                    Status = a.Status,
                     Deadline = a.Project?.Deadline ?? DateTime.MinValue,
-                    ReviewerId = a.ReviewerId ?? "",
-                    ReviewerName = a.Reviewer?.FullName ?? "",
-
+                    ReviewerId = a.ReviewerId,
+                    ReviewerName = a.Reviewer?.FullName ?? "Unknown",
                     Labels = a.Project?.LabelClasses.Select(l => new LabelResponse
                     {
                         Id = l.Id,
-                        Name = l.Name ?? "",
-                        Color = l.Color ?? "",
-                        GuideLine = l.GuideLine ?? "",
+                        Name = l.Name,
+                        Color = l.Color,
+                        GuideLine = l.GuideLine,
                         Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
                                     ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
                                     : new List<string>()
