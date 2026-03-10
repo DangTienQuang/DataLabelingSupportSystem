@@ -128,13 +128,10 @@ namespace BLL.Services
             var allUsers = await _userRepository.GetAllAsync();
 
             var totalCount = allUsers.Count();
-
             var stats = new
             {
                 TotalAdmins = allUsers.Count(u => u.Role == "Admin"),
-                TotalManagers = allUsers.Count(u => u.Role == "Manager"),
-                TotalReviewers = allUsers.Count(u => u.Role == "Reviewer"),
-                TotalAnnotators = allUsers.Count(u => u.Role == "Annotator")
+                TotalWorkers = allUsers.Count(u => u.Role != "Admin")
             };
 
             var items = allUsers
@@ -263,6 +260,7 @@ namespace BLL.Services
                 var email = row.Cell(1).GetValue<string>()?.Trim();
                 var fullName = row.Cell(2).GetValue<string>()?.Trim();
                 var role = row.Cell(3).GetValue<string>()?.Trim();
+                var managerEmail = row.Cell(4).GetValue<string>()?.Trim();
 
                 if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(fullName) || string.IsNullOrEmpty(role))
                 {
@@ -285,11 +283,25 @@ namespace BLL.Services
                     continue;
                 }
 
+                string? managerIdToAssign = null;
+                if (!string.IsNullOrEmpty(managerEmail))
+                {
+                    var manager = await _userRepository.GetUserByEmailAsync(managerEmail);
+                    if (manager == null || (manager.Role != "Manager" && manager.Role != "Admin"))
+                    {
+                        response.FailureCount++;
+                        response.Errors.Add($"Row {rowNumber}: Manager with email '{managerEmail}' not found or is not a Manager.");
+                        continue;
+                    }
+                    managerIdToAssign = manager.Id;
+                }
+
                 var user = new User
                 {
                     Email = email,
                     FullName = fullName,
                     Role = role,
+                    ManagerId = managerIdToAssign,
                     PasswordHash = defaultPassword,
                     PaymentInfo = new PaymentInfo()
                 };
@@ -314,7 +326,6 @@ namespace BLL.Services
 
             return response;
         }
-
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
