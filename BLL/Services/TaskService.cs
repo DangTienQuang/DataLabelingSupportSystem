@@ -203,8 +203,8 @@ namespace BLL.Services
             {
                 Id = assignment.Id,
                 DataItemId = assignment.DataItemId,
-                DataItemUrl = assignment.DataItem.StorageUrl,
-                Status = assignment.Status,
+                DataItemUrl = assignment.DataItem.StorageUrl ?? "",
+                Status = assignment.Status ?? "",
                 AnnotationData = assignment.Annotations?
                     .OrderByDescending(an => an.CreatedAt)
                     .FirstOrDefault()
@@ -219,7 +219,6 @@ namespace BLL.Services
                     : ""
             };
         }
-
         public async Task<AnnotatorStatsResponse> GetAnnotatorStatsAsync(string annotatorId)
         {
             return await _assignmentRepo.GetAnnotatorStatsAsync(annotatorId);
