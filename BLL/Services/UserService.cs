@@ -148,7 +148,8 @@ namespace BLL.Services
                     Email = u.Email ?? "",
                     Role = u.Role ?? "",
                     AvatarUrl = u.AvatarUrl ?? "",
-                    IsActive = u.IsActive
+                    IsActive = u.IsActive,
+                    ManagerId = u.ManagerId
                 }).ToList();
 
             return new PagedResponse<UserResponse>

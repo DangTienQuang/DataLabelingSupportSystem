@@ -8,6 +8,7 @@
         public string Role { get; set; } = null!;
         public string AvatarUrl { get; set; } = "";
         public bool IsActive { get; set; }
+        public string? ManagerId { get; set; }
     }
 
     public class PagedResponse<T>
