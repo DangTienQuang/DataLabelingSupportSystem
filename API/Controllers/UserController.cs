@@ -63,7 +63,12 @@ namespace API.Controllers
                         user.PaymentInfo.BankAccountNumber,
                         user.PaymentInfo.TaxCode
                     }
-                    : null
+                    : new
+                    {
+                        BankName = "",
+                        BankAccountNumber = "",
+                        TaxCode = ""
+                    }
             });
         }
 
@@ -264,12 +269,12 @@ namespace API.Controllers
         /// <response code="401">User is not authorized.</response>
         [HttpGet]
         [Authorize(Roles = "Admin,Manager")]
-        [ProducesResponseType(typeof(object), 200)] // Consider replacing 'object' with your specific DTO list
+        [ProducesResponseType(typeof(PagedResponse<UserResponse>), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
+            var result = await _userService.GetAllUsersAsync(page, pageSize);
+            return Ok(result);
         }
 
         /// <summary>
@@ -287,6 +292,7 @@ namespace API.Controllers
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 409)]
         public async Task<IActionResult> CreateUser([FromBody] RegisterRequest request)
         {
             try
@@ -306,6 +312,9 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
+                if (ex.Message.Contains("Email already exists"))
+                    return Conflict(new ErrorResponse { Message = ex.Message });
+
                 return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
@@ -326,6 +335,8 @@ namespace API.Controllers
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 404)]
+        [ProducesResponseType(typeof(ErrorResponse), 409)]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
             try
@@ -335,6 +346,11 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
+                if (ex.Message.Contains("User not found"))
+                    return NotFound(new ErrorResponse { Message = ex.Message });
+                if (ex.Message.Contains("Email already exists"))
+                    return Conflict(new ErrorResponse { Message = ex.Message });
+
                 return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
@@ -355,6 +371,7 @@ namespace API.Controllers
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 404)]
         public async Task<IActionResult> ToggleUserStatus(string id, [FromQuery] bool isActive)
         {
             try
@@ -365,6 +382,8 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
+                if (ex.Message.Contains("User not found"))
+                    return NotFound(new ErrorResponse { Message = ex.Message });
                 return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
@@ -384,6 +403,7 @@ namespace API.Controllers
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]
+        [ProducesResponseType(typeof(ErrorResponse), 404)]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -393,6 +413,8 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
+                if (ex.Message.Contains("User not found"))
+                    return NotFound(new ErrorResponse { Message = ex.Message });
                 return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }

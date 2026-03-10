@@ -123,10 +123,31 @@ namespace BLL.Services
             await _logService.LogActionAsync(userId, "UpdatePaymentInfo", "User", userId, "User updated their payment info.");
         }
 
-        public async Task<List<User>> GetAllUsersAsync()
+        public async Task<PagedResponse<UserResponse>> GetAllUsersAsync(int page, int pageSize)
         {
-            var users = await _userRepository.GetAllAsync();
-            return users.ToList();
+            var allUsers = await _userRepository.GetAllAsync();
+            var totalCount = allUsers.Count();
+            var items = allUsers
+                .OrderByDescending(u => u.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    FullName = u.FullName ?? "",
+                    Email = u.Email ?? "",
+                    Role = u.Role ?? "",
+                    AvatarUrl = u.AvatarUrl ?? "",
+                    IsActive = u.IsActive
+                }).ToList();
+
+            return new PagedResponse<UserResponse>
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Items = items
+            };
         }
 
         public async Task UpdateUserAsync(string userId, UpdateUserRequest request)

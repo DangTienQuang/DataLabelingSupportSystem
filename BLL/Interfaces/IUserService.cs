@@ -14,7 +14,7 @@ namespace BLL.Interfaces
         Task UpdatePaymentInfoAsync(string userId, string bankName, string bankAccount, string taxCode);
         Task ChangePasswordAsync(string userId, string oldPassword, string newPassword);
         Task UpdateProfileAsync(string userId, UpdateProfileRequest request);
-        Task<List<User>> GetAllUsersAsync();
+        Task<PagedResponse<UserResponse>> GetAllUsersAsync(int page, int pageSize);
         Task UpdateUserAsync(string userId, UpdateUserRequest request);
         Task DeleteUserAsync(string userId);
         Task ToggleUserStatusAsync(string userId, bool isActive);
