@@ -247,7 +247,10 @@ namespace BLL.Services
                         Id = l.Id,
                         Name = l.Name,
                         Color = l.Color,
-                        GuideLine = l.GuideLine
+                        GuideLine = l.GuideLine,
+                        Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
+                                    ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
+                                    : new List<string>()
                     }).ToList() ?? new List<LabelResponse>(),
                     ExistingAnnotations = annotationJson != null ? new List<object> { annotationJson } : new List<object>()
                 };
