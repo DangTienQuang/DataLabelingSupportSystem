@@ -63,6 +63,28 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         ClockSkew = TimeSpan.Zero
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.ContentType = "application/json";
+
+            var result = System.Text.Json.JsonSerializer.Serialize(new { message = "Unauthorized. Please provide a valid authentication token." });
+            await context.Response.WriteAsync(result);
+        },
+        OnForbidden = async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+
+            var result = System.Text.Json.JsonSerializer.Serialize(new { message = "Forbidden. You do not have permission to access this resource." });
+            await context.Response.WriteAsync(result);
+        }
+    };
 });
 
 builder.Services.AddControllers();
