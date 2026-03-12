@@ -41,6 +41,7 @@ namespace Core.DTOs.Requests
         public string Color { get; set; } = "#000000";
         public string GuideLine { get; set; } = string.Empty;
         public List<string>? Checklist { get; set; }
+        public string? ExampleImageUrl { get; set; }
     }
 
     public class ImportDataRequest

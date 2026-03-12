@@ -124,6 +124,7 @@
                     Name = label.Name,
                     Color = label.Color,
                     GuideLine = label.GuideLine,
+                    ExampleImageUrl = label.ExampleImageUrl, 
                     DefaultChecklist = (label.Checklist != null && label.Checklist.Any())
                                             ? JsonSerializer.Serialize(label.Checklist)
                                             : "[]"
@@ -161,6 +162,7 @@
                     Name = l.Name,
                     Color = l.Color,
                     GuideLine = l.GuideLine,
+                    ExampleImageUrl = l.ExampleImageUrl,
                     Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
                                 ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
                                 : new List<string>()
@@ -369,6 +371,7 @@
                         Name = l.Name,
                         Color = l.Color,
                         GuideLine = l.GuideLine,
+                        ExampleImageUrl = l.ExampleImageUrl,
                         Checklist = !string.IsNullOrEmpty(l.DefaultChecklist)
                                     ? JsonSerializer.Deserialize<List<string>>(l.DefaultChecklist, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string>()
                                     : new List<string>()
