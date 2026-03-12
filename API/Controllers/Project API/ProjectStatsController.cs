@@ -34,7 +34,7 @@ namespace API.Controllers
         /// <response code="400">Failed to retrieve statistics (e.g., project not found).</response>
         /// <response code="401">User is not authenticated or not authorized.</response>
         [HttpGet("{projectId}/statistics")]
-        [Authorize(Roles = "Manager,Admin,Reviewer")]
+        [Authorize(Roles = "Manager,Admin,Reviewer,Annotator")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]

@@ -91,6 +91,16 @@ namespace Core.DTOs.Responses
         /// Distribution of labels across the project's annotations.
         /// </summary>
         public List<LabelDistribution> LabelDistributions { get; set; } = new();
+
+        /// <summary>
+        /// Project accuracy based on first-pass correct items.
+        /// </summary>
+        public double ProjectAccuracy { get; set; }
+
+        /// <summary>
+        /// Performance statistics for each reviewer on the project.
+        /// </summary>
+        public List<ReviewerPerformance> ReviewerPerformances { get; set; } = new();
     }
 
     /// <summary>
@@ -143,6 +153,28 @@ namespace Core.DTOs.Responses
         /// Total number of critical errors committed by this annotator.
         /// </summary>
         public int TotalCriticalErrors { get; set; }
+
+        /// <summary>
+        /// Annotator accuracy = CorrectByManager / ManagerDecisions (0-100%).
+        /// Based on manager's final decision as ground truth.
+        /// </summary>
+        public double AnnotatorAccuracy { get; set; }
+    }
+
+    /// <summary>
+    /// Performance metrics for an individual reviewer.
+    /// </summary>
+    public class ReviewerPerformance
+    {
+        public string ReviewerId { get; set; } = string.Empty;
+        public string ReviewerName { get; set; } = string.Empty;
+        public int TotalReviews { get; set; }
+        public int CorrectDecisions { get; set; }
+        public int TotalManagerDecisions { get; set; }
+        /// <summary>
+        /// Reviewer accuracy = CorrectDecisions / TotalManagerDecisions (0-100%).
+        /// </summary>
+        public double ReviewerAccuracy { get; set; }
     }
 
     /// <summary>
@@ -163,3 +195,4 @@ namespace Core.DTOs.Responses
         public int Count { get; set; }
     }
 }
+

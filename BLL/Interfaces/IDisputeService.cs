@@ -1,4 +1,5 @@
-﻿using Core.DTOs.Requests;
+using Core.DTOs.Requests;
+using Core.DTOs.Responses;
 using Core.Entities;
 
 namespace BLL.Interfaces
@@ -6,7 +7,7 @@ namespace BLL.Interfaces
     public interface IDisputeService
     {
         Task CreateDisputeAsync(string annotatorId, CreateDisputeRequest request);
-        Task ResolveDisputeAsync(ResolveDisputeRequest request);
-        Task<List<Dispute>> GetDisputesAsync(int projectId, string userId, string role);
+        Task ResolveDisputeAsync(string managerId, ResolveDisputeRequest request);
+        Task<List<DisputeResponse>> GetDisputesAsync(int projectId, string userId, string role);
     }
 }

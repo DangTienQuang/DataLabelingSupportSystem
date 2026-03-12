@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Entities
@@ -26,6 +26,10 @@ namespace Core.Entities
         public string Status { get; set; } = "Pending";
 
         public string? ManagerComment { get; set; }
+
+        public string? ManagerId { get; set; }
+        [ForeignKey("ManagerId")]
+        public virtual User? Manager { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ResolvedAt { get; set; }

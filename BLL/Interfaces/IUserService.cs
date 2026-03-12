@@ -11,7 +11,6 @@ namespace BLL.Interfaces
         Task<string?> LoginAsync(string email, string password);
         Task<User?> GetUserByIdAsync(string id);
         Task<bool> IsEmailExistsAsync(string email);
-        Task UpdatePaymentInfoAsync(string userId, string bankName, string bankAccount, string taxCode);
         Task ChangePasswordAsync(string userId, string oldPassword, string newPassword);
         Task UpdateProfileAsync(string userId, UpdateProfileRequest request);
         Task<PagedResponse<UserResponse>> GetAllUsersAsync(int page, int pageSize);

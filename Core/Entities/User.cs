@@ -30,11 +30,9 @@ namespace Core.Entities
         [InverseProperty("Manager")]
         public virtual ICollection<User> ManagedUsers { get; set; } = new List<User>();
 
-        public virtual PaymentInfo? PaymentInfo { get; set; }
         public virtual ICollection<Project> ManagedProjects { get; set; } = new List<Project>();
         public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         public virtual ICollection<ReviewLog> ReviewsGiven { get; set; } = new List<ReviewLog>();
-        public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
         public virtual ICollection<UserProjectStat> ProjectStats { get; set; } = new List<UserProjectStat>();
     }
 }

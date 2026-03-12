@@ -1,4 +1,4 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
@@ -62,7 +62,10 @@ namespace API.Controllers
         [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> ResolveDispute([FromBody] ResolveDisputeRequest request)
         {
-            await _disputeService.ResolveDisputeAsync(request);
+            var managerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(managerId)) return Unauthorized();
+
+            await _disputeService.ResolveDisputeAsync(managerId, request);
             return Ok(new { Message = "Dispute resolved." });
         }
 
@@ -82,11 +85,18 @@ namespace API.Controllers
         [ProducesResponseType(typeof(ErrorResponse), 401)]
         public async Task<IActionResult> GetDisputes([FromQuery] int projectId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var disputes = await _disputeService.GetDisputesAsync(projectId, userId, role);
-            return Ok(disputes);
+                var disputes = await _disputeService.GetDisputesAsync(projectId, userId, role);
+                return Ok(disputes);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
         }
     }
 }

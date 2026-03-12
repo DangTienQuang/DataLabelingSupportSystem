@@ -1,4 +1,4 @@
-﻿using DAL.Interfaces;
+using DAL.Interfaces;
 using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -75,7 +75,10 @@ namespace DAL.Repositories
                 .Include(p => p.DataItems)
                     .ThenInclude(d => d.Assignments)
                         .ThenInclude(a => a.Annotator)
-                 .Include(p => p.DataItems)
+                .Include(p => p.DataItems)
+                    .ThenInclude(d => d.Assignments)
+                        .ThenInclude(a => a.Reviewer)
+                .Include(p => p.DataItems)
                     .ThenInclude(d => d.Assignments)
                         .ThenInclude(a => a.ReviewLogs)
                 .AsSplitQuery()
@@ -100,7 +103,6 @@ namespace DAL.Repositories
                     Id = p.Id,
                     Name = p.Name,
                     Deadline = p.Deadline,
-                    TotalBudget = p.TotalBudget,
                     DataItems = p.DataItems.Select(d => new DataItem
                     {
                         Status = d.Status,

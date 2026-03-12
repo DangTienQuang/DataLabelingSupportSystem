@@ -24,18 +24,6 @@ namespace Core.DTOs.Responses
         public string? Description { get; set; }
 
         /// <summary>
-        /// The price paid per label.
-        /// </summary>
-        /// <example>0.05</example>
-        public decimal PricePerLabel { get; set; }
-
-        /// <summary>
-        /// The total budget allocated for the project.
-        /// </summary>
-        /// <example>500.00</example>
-        public decimal TotalBudget { get; set; }
-
-        /// <summary>
         /// The deadline for the project.
         /// </summary>
         /// <example>2024-01-31T23:59:59</example>

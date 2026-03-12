@@ -17,6 +17,8 @@ namespace DAL.Repositories
             return await AppContext.Disputes
                 .Include(d => d.Annotator)
                 .Include(d => d.Assignment)
+                    .ThenInclude(a => a.Project)
+                .Include(d => d.Assignment)
                     .ThenInclude(a => a.DataItem)
                 .Include(d => d.Assignment)
                     .ThenInclude(a => a.Reviewer)
@@ -28,10 +30,13 @@ namespace DAL.Repositories
         public async Task<List<Dispute>> GetDisputesByAnnotatorAsync(string annotatorId)
         {
             return await AppContext.Disputes
+                .Include(d => d.Annotator)
                 .Include(d => d.Assignment)
                     .ThenInclude(a => a.DataItem)
                 .Include(d => d.Assignment)
                     .ThenInclude(a => a.Project)
+                .Include(d => d.Assignment)
+                    .ThenInclude(a => a.Reviewer)
                 .Where(d => d.AnnotatorId == annotatorId)
                 .OrderByDescending(d => d.CreatedAt)
                 .ToListAsync();

@@ -325,7 +325,7 @@ namespace BLL.Services
             {
                 latestAnnotation.DataJSON = request.DataJSON;
                 latestAnnotation.CreatedAt = DateTime.UtcNow;
-                latestAnnotation.ClassId = ExtractClassIdFromJSON(request.DataJSON);
+                latestAnnotation.ClassId = request.ClassId;
                 _annotationRepo.Update(latestAnnotation);
             }
             else
@@ -335,7 +335,7 @@ namespace BLL.Services
                     AssignmentId = assignment.Id,
                     DataJSON = request.DataJSON,
                     CreatedAt = DateTime.UtcNow,
-                    ClassId = ExtractClassIdFromJSON(request.DataJSON)
+                    ClassId = request.ClassId
                 };
                 await _annotationRepo.AddAsync(annotation);
             }
@@ -370,7 +370,7 @@ namespace BLL.Services
                 AssignmentId = assignment.Id,
                 DataJSON = request.DataJSON,
                 CreatedAt = DateTime.UtcNow,
-                ClassId = ExtractClassIdFromJSON(request.DataJSON)
+                ClassId = request.ClassId
             };
 
             await _annotationRepo.AddAsync(annotation);

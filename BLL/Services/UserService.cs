@@ -43,10 +43,8 @@ namespace BLL.Services
                 FullName = fullName,
                 Email = email,
                 Role = role,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-                PaymentInfo = new PaymentInfo()
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
             };
-            user.PaymentInfo.UserId = user.Id;
 
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
@@ -99,28 +97,12 @@ namespace BLL.Services
 
         public async Task<User?> GetUserByIdAsync(string id)
         {
-            return await _userRepository.GetUserWithPaymentInfoAsync(id);
+            return await _userRepository.GetByIdAsync(id);
         }
 
         public async Task<bool> IsEmailExistsAsync(string email)
         {
             return await _userRepository.IsEmailExistsAsync(email);
-        }
-
-        public async Task UpdatePaymentInfoAsync(string userId, string bankName, string bankAccount, string taxCode)
-        {
-            var user = await _userRepository.GetUserWithPaymentInfoAsync(userId);
-            if (user == null) throw new Exception("User not found");
-
-            if (user.PaymentInfo == null) user.PaymentInfo = new PaymentInfo { UserId = userId };
-
-            user.PaymentInfo.BankName = bankName;
-            user.PaymentInfo.BankAccountNumber = bankAccount;
-            user.PaymentInfo.TaxCode = taxCode;
-
-            _userRepository.Update(user);
-            await _userRepository.SaveChangesAsync();
-            await _logService.LogActionAsync(userId, "UpdatePaymentInfo", "User", userId, "User updated their payment info.");
         }
 
         public async Task<PagedResponse<UserResponse>> GetAllUsersAsync(int page, int pageSize)
@@ -302,15 +284,10 @@ namespace BLL.Services
                     FullName = fullName,
                     Role = role,
                     ManagerId = managerIdToAssign,
-                    PasswordHash = defaultPassword,
-                    PaymentInfo = new PaymentInfo()
+                    PasswordHash = defaultPassword
                 };
 
                 await _userRepository.AddAsync(user);
-                await _userRepository.SaveChangesAsync();
-
-                user.PaymentInfo.UserId = user.Id;
-                _userRepository.Update(user);
                 await _userRepository.SaveChangesAsync();
 
                 response.SuccessCount++;

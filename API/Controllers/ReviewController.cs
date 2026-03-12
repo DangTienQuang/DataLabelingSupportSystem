@@ -71,7 +71,7 @@ namespace API.Controllers
         /// <response code="400">Failed to retrieve tasks.</response>
         /// <response code="401">User is not authenticated.</response>
         [HttpGet("projects/{projectId}/tasks")]
-        [Authorize(Roles = "Reviewer,Manager,Admin")]
+        [Authorize(Roles = "Reviewer,Manager,Admin,Annotator")]
         [ProducesResponseType(typeof(IEnumerable<TaskResponse>), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
         [ProducesResponseType(typeof(ErrorResponse), 401)]

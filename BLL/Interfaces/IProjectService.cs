@@ -17,7 +17,6 @@ namespace BLL.Interfaces
         Task<int> UploadDirectDataItemsAsync(int projectId, List<Microsoft.AspNetCore.Http.IFormFile> files, string webRootPath);
         Task<byte[]> ExportProjectDataAsync(int projectId, string userId);
         Task<ProjectStatisticsResponse> GetProjectStatisticsAsync(int projectId);
-        Task GenerateInvoicesAsync(int projectId);
  
     }
 }

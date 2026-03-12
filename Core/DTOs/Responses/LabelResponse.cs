@@ -6,6 +6,7 @@ namespace Core.DTOs.Responses
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
         public string? GuideLine { get; set; }
+        public string? ExampleImageUrl { get; set; }
         public List<string> Checklist { get; set; } = new List<string>();
     }
 }

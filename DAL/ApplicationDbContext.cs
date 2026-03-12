@@ -10,14 +10,12 @@ namespace DAL
         }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<PaymentInfo> PaymentInfos { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<LabelClass> LabelClasses { get; set; }
         public DbSet<DataItem> DataItems { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<Annotation> Annotations { get; set; }
         public DbSet<ReviewLog> ReviewLogs { get; set; }
-        public DbSet<Invoice> Invoices { get; set; }
         public DbSet<UserProjectStat> UserProjectStats { get; set; }
         public DbSet<Dispute> Disputes { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
@@ -47,13 +45,6 @@ namespace DAL
                 .HasForeignKey(r => r.ReviewerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 4. CẤU HÌNH INVOICE
-            modelBuilder.Entity<Invoice>()
-                .HasOne(i => i.User)
-                .WithMany(u => u.Invoices)
-                .HasForeignKey(i => i.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             // 5. Cấu hình UserProjectStat
             modelBuilder.Entity<UserProjectStat>()
                 .HasOne(s => s.User)
@@ -68,22 +59,6 @@ namespace DAL
                 .HasForeignKey(a => a.ProjectId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // 8. Cấu hình độ chính xác số thập phân
-            modelBuilder.Entity<Project>()
-                .Property(p => p.PricePerLabel)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<Project>()
-                .Property(p => p.TotalBudget)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<Invoice>()
-                .Property(i => i.UnitPrice)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<Invoice>()
-                .Property(i => i.TotalAmount)
-                .HasPrecision(18, 2);
         }
     }
 }

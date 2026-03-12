@@ -16,7 +16,7 @@ namespace Core.Entities
         public string Color { get; set; } = "#000000";
 
         public string? GuideLine { get; set; }
-
+        public string? ExampleImageUrl { get; set; }
         public string? DefaultChecklist { get; set; }
 
         public int ProjectId { get; set; }

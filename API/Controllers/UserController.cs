@@ -55,20 +55,7 @@ namespace API.Controllers
                 user.FullName,
                 user.Email,
                 user.Role,
-                user.AvatarUrl,
-                PaymentInfo = user.PaymentInfo != null
-                    ? new
-                    {
-                        user.PaymentInfo.BankName,
-                        user.PaymentInfo.BankAccountNumber,
-                        user.PaymentInfo.TaxCode
-                    }
-                    : new
-                    {
-                        BankName = "",
-                        BankAccountNumber = "",
-                        TaxCode = ""
-                    }
+                user.AvatarUrl
             });
         }
 
@@ -148,38 +135,6 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ErrorResponse { Message = "Server error: " + ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Updates the payment information of the current user.
-        /// </summary>
-        /// <param name="request">Payment information update request.</param>
-        /// <response code="200">Payment information updated successfully.</response>
-        /// <response code="400">Update failed.</response>
-        /// <response code="401">User is not authenticated.</response>
-        [HttpPut("me/payment")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(ErrorResponse), 400)]
-        [ProducesResponseType(typeof(ErrorResponse), 401)]
-        public async Task<IActionResult> UpdateMyPaymentInfo([FromBody] UpdatePaymentRequest request)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            try
-            {
-                await _userService.UpdatePaymentInfoAsync(
-                    userId,
-                    request.BankName,
-                    request.BankAccountNumber,
-                    request.TaxCode
-                );
-                return Ok(new { Message = "Payment info updated successfully." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ErrorResponse { Message = ex.Message });
             }
         }
 
