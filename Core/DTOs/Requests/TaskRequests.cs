@@ -35,13 +35,15 @@ namespace Core.DTOs.Requests
         [Required]
         public int AssignmentId { get; set; }
         public string DataJSON { get; set; } = string.Empty;
- 
+        public int? ClassId { get; set; }
     }
+
     public class SubmitMultipleTasksRequest
     {
         [Required]
         public List<int> AssignmentIds { get; set; } = new List<int>();
     }
+
     public class AnnotationItem
     {
         public int LabelClassId { get; set; }

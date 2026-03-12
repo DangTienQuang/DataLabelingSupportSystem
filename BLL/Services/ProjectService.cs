@@ -380,33 +380,34 @@
                 };
             }
 
-            public async Task<List<ProjectSummaryResponse>> GetProjectsByManagerAsync(string managerId)
+        public async Task<List<ProjectSummaryResponse>> GetProjectsByManagerAsync(string managerId)
+        {
+            var projects = await _projectRepository.GetProjectsByManagerIdAsync(managerId);
+
+            return projects.Select(p => new ProjectSummaryResponse
             {
-                var projects = await _projectRepository.GetProjectsByManagerIdAsync(managerId);
+                Id = p.Id,
+                Name = p.Name,
+                Deadline = p.Deadline,
+                TotalDataItems = p.DataItems.Count,
+                Status = DateTime.UtcNow > p.Deadline ? "Expired" :
+                         (p.DataItems.Count == 0 || p.DataItems.All(d => d.Status == TaskStatusConstants.New) ? "New" : "Active"),
 
-                return projects.Select(p => new ProjectSummaryResponse
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Deadline = p.Deadline,
-                    TotalDataItems = p.DataItems.Count,
-                    Status = DateTime.UtcNow > p.Deadline ? "Expired" : "Active",
-                    Progress = p.DataItems.Count > 0
-                        ? (decimal)p.DataItems.Count(d =>
-                            d.Status == TaskStatusConstants.Approved ||
-                            (d.Assignments != null && d.Assignments.Any(a => a.Status == TaskStatusConstants.Approved))
-                        ) / p.DataItems.Count * 100
-                        : 0,
-                    TotalMembers = p.DataItems
-                                    .SelectMany(d => d.Assignments)
-                                    .SelectMany(a => new[] { a.AnnotatorId, a.ReviewerId })
-                                    .Where(id => !string.IsNullOrEmpty(id))
-                                    .Distinct()
-                                    .Count()
-                }).ToList();
-            }
-
-            public async Task DeleteProjectAsync(int projectId)
+                Progress = p.DataItems.Count > 0
+                    ? (decimal)p.DataItems.Count(d =>
+                        d.Status == TaskStatusConstants.Approved ||
+                        (d.Assignments != null && d.Assignments.Any(a => a.Status == TaskStatusConstants.Approved))
+                    ) / p.DataItems.Count * 100
+                    : 0,
+                TotalMembers = p.DataItems
+                                .SelectMany(d => d.Assignments)
+                                .SelectMany(a => new[] { a.AnnotatorId, a.ReviewerId })
+                                .Where(id => !string.IsNullOrEmpty(id))
+                                .Distinct()
+                                .Count()
+            }).ToList();
+        }
+        public async Task DeleteProjectAsync(int projectId)
             {
                 var project = await _projectRepository.GetByIdAsync(projectId);
                 if (project == null) throw new Exception("Project not found");
@@ -584,7 +585,8 @@
                     TotalItems = project.DataItems.Count,
                     CompletedItems = project.DataItems.Count(d => d.Status == TaskStatusConstants.Approved),
                     TotalAssignments = allAssignments.Count,
-                    PendingAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.New || a.Status == TaskStatusConstants.Assigned || a.Status == TaskStatusConstants.InProgress),
+                    PendingAssignments = project.DataItems.Count(d => d.Status == TaskStatusConstants.New) +
+                                     allAssignments.Count(a => a.Status == TaskStatusConstants.New || a.Status == TaskStatusConstants.Assigned || a.Status == TaskStatusConstants.InProgress),
                     SubmittedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Submitted),
                     ApprovedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Approved),
                     RejectedAssignments = allAssignments.Count(a => a.Status == TaskStatusConstants.Rejected),
@@ -686,33 +688,23 @@
                 return stats;
             }
 
-            public async Task<ManagerStatsResponse> GetManagerStatsAsync(string managerId)
+        public async Task<ManagerStatsResponse> GetManagerStatsAsync(string managerId)
+        {
+            var projects = await _projectRepository.GetProjectsByManagerIdAsync(managerId);
+            var allUsers = await _userRepository.GetAllAsync();
+            var totalMembers = allUsers.Count(u => u.ManagerId == managerId);
+
+            return new ManagerStatsResponse
             {
-                var projects = await _projectRepository.GetProjectsByManagerIdAsync(managerId);
-                var allUsers = await _userRepository.GetAllAsync();
+                TotalProjects = projects.Count,
+                ActiveProjects = projects.Count(p => p.Deadline >= DateTime.UtcNow),
+                TotalBudget = projects.Sum(p => p.TotalBudget),
+                TotalDataItems = projects.Sum(p => p.DataItems.Count),
+                TotalMembers = totalMembers
+            };
+        }
 
-                var directSubordinates = allUsers.Where(u => u.ManagerId == managerId).Select(u => u.Id).ToList();
-
-                var projectMembers = projects.SelectMany(p => p.DataItems)
-                                            .SelectMany(d => d.Assignments)
-                                            .SelectMany(a => new[] { a.AnnotatorId, a.ReviewerId })
-                                            .Where(id => !string.IsNullOrEmpty(id))
-                                            .Distinct()
-                                            .ToList();
-
-                var totalMembers = directSubordinates.Union(projectMembers).Distinct().Count();
-
-                return new ManagerStatsResponse
-                {
-                    TotalProjects = projects.Count,
-                    ActiveProjects = projects.Count(p => p.Deadline >= DateTime.UtcNow),
-                    TotalBudget = projects.Sum(p => p.TotalBudget),
-                    TotalDataItems = projects.Sum(p => p.DataItems.Count),
-                    TotalMembers = totalMembers
-                };
-            }
-
-            public async Task<List<Core.DTOs.Responses.BucketResponse>> GetBucketsAsync(int projectId, string userId)
+        public async Task<List<Core.DTOs.Responses.BucketResponse>> GetBucketsAsync(int projectId, string userId)
             {
                 var dataItems = await _projectRepository.GetProjectDataItemsAsync(projectId);
 
