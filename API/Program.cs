@@ -38,9 +38,10 @@ builder.Services.AddScoped<IAppNotificationService, API.Services.AppNotification
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        b => b.AllowAnyOrigin()
+        b => b.WithOrigins("http://localhost:5173", "https://localhost:3000")
               .AllowAnyMethod()
-              .AllowAnyHeader());
+              .AllowAnyHeader()
+              .AllowCredentials());
 });
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
