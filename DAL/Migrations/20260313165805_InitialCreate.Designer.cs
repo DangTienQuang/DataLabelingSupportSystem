@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260312010757_AddAccuracyAndManagerToDispute")]
-    partial class AddAccuracyAndManagerToDispute
+    [Migration("20260313165805_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -230,54 +230,6 @@ namespace DAL.Migrations
                     b.ToTable("Disputes");
                 });
 
-            modelBuilder.Entity("Core.Entities.Invoice", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalLabels")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Invoices");
-                });
-
             modelBuilder.Entity("Core.Entities.LabelClass", b =>
                 {
                     b.Property<int>("Id")
@@ -292,6 +244,9 @@ namespace DAL.Migrations
                         .HasColumnType("nvarchar(7)");
 
                     b.Property<string>("DefaultChecklist")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExampleImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GuideLine")
@@ -310,38 +265,6 @@ namespace DAL.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("LabelClasses");
-                });
-
-            modelBuilder.Entity("Core.Entities.PaymentInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BankAccountNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TaxCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("PaymentInfos");
                 });
 
             modelBuilder.Entity("Core.Entities.Project", b =>
@@ -387,16 +310,8 @@ namespace DAL.Migrations
                     b.Property<int>("PenaltyUnit")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("PricePerLabel")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal>("TotalBudget")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -541,9 +456,6 @@ namespace DAL.Migrations
 
                     b.Property<float>("EfficiencyScore")
                         .HasColumnType("real");
-
-                    b.Property<decimal>("EstimatedEarnings")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
@@ -698,25 +610,6 @@ namespace DAL.Migrations
                     b.Navigation("Manager");
                 });
 
-            modelBuilder.Entity("Core.Entities.Invoice", b =>
-                {
-                    b.HasOne("Core.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Entities.User", "User")
-                        .WithMany("Invoices")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Core.Entities.LabelClass", b =>
                 {
                     b.HasOne("Core.Entities.Project", "Project")
@@ -726,17 +619,6 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("Core.Entities.PaymentInfo", b =>
-                {
-                    b.HasOne("Core.Entities.User", "User")
-                        .WithOne("PaymentInfo")
-                        .HasForeignKey("Core.Entities.PaymentInfo", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Core.Entities.Project", b =>
@@ -838,13 +720,9 @@ namespace DAL.Migrations
                 {
                     b.Navigation("Assignments");
 
-                    b.Navigation("Invoices");
-
                     b.Navigation("ManagedProjects");
 
                     b.Navigation("ManagedUsers");
-
-                    b.Navigation("PaymentInfo");
 
                     b.Navigation("ProjectStats");
 

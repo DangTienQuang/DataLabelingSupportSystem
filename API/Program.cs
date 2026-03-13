@@ -38,7 +38,7 @@ builder.Services.AddScoped<IAppNotificationService, API.Services.AppNotification
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        b => b.WithOrigins("http://localhost:5173", "https://localhost:3000")
+        b => b.WithOrigins("https://localhost:3000")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials());
