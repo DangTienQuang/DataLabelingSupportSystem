@@ -144,5 +144,22 @@ namespace DAL.Repositories
             }
             return stats;
         }
+        public async Task<bool> HasPendingTasksAsync(string userId, string currentRole)
+        {
+            if (currentRole == UserRoles.Annotator)
+            {
+                return await AppContext.Assignments.AnyAsync(a =>
+                    a.AnnotatorId == userId &&
+                    a.Status != TaskStatusConstants.Approved);
+            }
+            else if (currentRole == UserRoles.Reviewer)
+            {
+                return await AppContext.Assignments.AnyAsync(a =>
+                    a.ReviewerId == userId &&
+                    a.Status == TaskStatusConstants.Submitted);
+            }
+
+            return false;
+        }
     }
 }

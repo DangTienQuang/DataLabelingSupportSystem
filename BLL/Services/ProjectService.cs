@@ -175,7 +175,10 @@
 
             project.Name = request.Name;
             if (!string.IsNullOrEmpty(request.Description)) project.Description = request.Description;
-
+            if (!string.IsNullOrEmpty(request.AllowGeometryTypes))
+            {
+                project.AllowGeometryTypes = request.AllowGeometryTypes;
+            }
 
             if (request.Deadline.HasValue) project.Deadline = request.Deadline.Value;
             if (request.StartDate.HasValue) project.StartDate = request.StartDate.Value;

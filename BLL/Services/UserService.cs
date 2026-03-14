@@ -19,15 +19,17 @@ namespace BLL.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IActivityLogService _logService;
-
+        private readonly IAssignmentRepository _assignmentRepo;
         public UserService(
             IUserRepository userRepository,
             IConfiguration configuration,
+            IAssignmentRepository assignmentRepo,
             IActivityLogService logService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _logService = logService;
+
         }
 
         public async Task<User> RegisterAsync(string fullName, string email, string password, string role)
@@ -153,9 +155,15 @@ namespace BLL.Services
                     throw new Exception("Email already exists.");
                 user.Email = request.Email;
             }
-            if (!string.IsNullOrEmpty(request.Role))
+            if (!string.IsNullOrEmpty(request.Role) && request.Role != user.Role)
             {
                 if (!UserRoles.IsValid(request.Role)) throw new Exception("Invalid role.");
+                bool hasPendingTasks = await _assignmentRepo.HasPendingTasksAsync(user.Id, user.Role);
+                if (hasPendingTasks)
+                {
+                    throw new Exception($"Cannot change role. This user still has unfinished tasks as an {user.Role}.");
+                }
+
                 user.Role = request.Role;
             }
             if (!string.IsNullOrEmpty(request.Password))
@@ -167,7 +175,6 @@ namespace BLL.Services
             await _userRepository.SaveChangesAsync();
             await _logService.LogActionAsync(userId, "UpdateUser", "User", userId, "Admin updated user details.");
         }
-
         public async Task ChangePasswordAsync(string userId, string oldPassword, string newPassword)
         {
             var user = await _userRepository.GetByIdAsync(userId);

@@ -12,6 +12,7 @@ namespace DAL.Interfaces
         Task<AnnotatorStatsResponse> GetAnnotatorStatsAsync(string annotatorId);
         Task<List<Assignment>> GetAssignmentsByBucketAsync(int projectId, int bucketId, string userId);
         Task ResetAssignmentsByProjectAsync(int projectId, string reason);
+        Task<bool> HasPendingTasksAsync(string userId, string currentRole);
         Task<int> CountActiveTasksAsync(int projectId);
     }
 }
