@@ -24,6 +24,7 @@ namespace Core.DTOs.Requests
         public string? Description { get; set; }
         public int PenaltyUnit { get; set; }
         public string? AnnotationGuide { get; set; }
+        public string? AllowGeometryTypes { get; set; }
         public int? MaxTaskDurationHours { get; set; }
         public DateTime? Deadline { get; set; }
         public DateTime? StartDate { get; set; }
