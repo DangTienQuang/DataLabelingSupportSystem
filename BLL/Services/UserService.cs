@@ -207,7 +207,11 @@ namespace BLL.Services
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) throw new Exception("User not found");
-
+            bool hasPendingTasks = await _assignmentRepo.HasPendingTasksAsync(user.Id, user.Role);
+            if (hasPendingTasks)
+            {
+                throw new Exception($"Cannot deactivate this user. They still have unfinished tasks as an {user.Role}. Please reassign or complete their tasks first.");
+            }
             user.IsActive = false;
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
@@ -219,7 +223,14 @@ namespace BLL.Services
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) throw new Exception("User not found");
-
+            if (!isActive)
+            {
+                bool hasPendingTasks = await _assignmentRepo.HasPendingTasksAsync(user.Id, user.Role);
+                if (hasPendingTasks)
+                {
+                    throw new Exception($"Cannot deactivate this user. They still have unfinished tasks as an {user.Role}.");
+                }
+            }
             user.IsActive = isActive;
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
