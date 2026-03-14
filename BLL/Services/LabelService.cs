@@ -3,7 +3,7 @@ using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using DAL.Interfaces;
 using Core.Entities;
-using System.Text.Json; // Bổ sung thư viện này để dùng JsonSerializer
+using System.Text.Json;
 
 namespace BLL.Services
 {
@@ -34,7 +34,6 @@ namespace BLL.Services
                 Name = request.Name,
                 Color = request.Color,
                 GuideLine = request.GuideLine,
-                // THÊM MAP DỮ LIỆU Ở ĐÂY
                 ExampleImageUrl = request.ExampleImageUrl,
                 IsDefault = request.IsDefault,
                 DefaultChecklist = (request.Checklist != null && request.Checklist.Any())
@@ -73,7 +72,6 @@ namespace BLL.Services
             bool isCriticalChange = label.Name != request.Name || label.GuideLine != request.GuideLine;
             string oldName = label.Name;
 
-            // CẬP NHẬT DỮ LIỆU Ở ĐÂY
             label.Name = request.Name;
             label.Color = request.Color;
             label.GuideLine = request.GuideLine;
