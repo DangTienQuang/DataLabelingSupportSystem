@@ -31,8 +31,20 @@
                 _assignmentRepo = assignmentRepo;
                 _activityLogRepo = activityLogRepo;
             }
-
-            public async Task<int> UploadDirectDataItemsAsync(int projectId, List<Microsoft.AspNetCore.Http.IFormFile> files, string webRootPath)
+        public async Task<object> GetUserProjectsByUserIdAsync(string userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found.");
+            if (user.Role == UserRoles.Manager || user.Role == UserRoles.Admin)
+            {
+                return await GetProjectsByManagerAsync(userId);
+            }
+            else
+            {
+                return await GetAssignedProjectsAsync(userId);
+            }
+        }
+        public async Task<int> UploadDirectDataItemsAsync(int projectId, List<Microsoft.AspNetCore.Http.IFormFile> files, string webRootPath)
             {
                 var project = await _projectRepository.GetByIdAsync(projectId);
                 if (project == null) throw new Exception("Project not found");

@@ -23,42 +23,25 @@ namespace API.Controllers
             _projectService = projectService;
         }
         /// <summary>
-        /// Retrieves all projects associated with the currently authenticated user.
+        /// Retrieves all projects for a specific user by their ID.
         /// </summary>
         /// <remarks>
-        /// Automatically identifies the user's role from the JWT token:
-        /// - If Manager/Admin: Returns projects managed by them.
-        /// - If Annotator/Reviewer: Returns projects where they have assigned tasks.
         /// </remarks>
-        /// <returns>A list of projects based on the user's role.</returns>
+        /// <param name="userId">The target user's ID.</param>
+        /// <returns>A list of projects based on the target user's role.</returns>
         /// <response code="200">Projects retrieved successfully.</response>
         /// <response code="400">Failed to retrieve projects.</response>
-        /// <response code="401">User is not authenticated.</response>
-        [HttpGet("my-projects")]
-        [Authorize]
+        /// <response code="401">User is not authenticated or not authorized.</response>
+        [HttpGet("user/{userId}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(ErrorResponse), 400)]
-        [ProducesResponseType(typeof(ErrorResponse), 401)]
-        public async Task<IActionResult> GetMyProjects()
+        public async Task<IActionResult> GetUserProjectsForAdmin(string userId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(userRole))
-                return Unauthorized(new ErrorResponse { Message = "Invalid token or session expired." });
-
             try
             {
-                if (userRole == "Manager" || userRole == "Admin")
-                {
-                    var projects = await _projectService.GetProjectsByManagerAsync(userId);
-                    return Ok(projects);
-                }
-                else
-                {
-                    var projects = await _projectService.GetAssignedProjectsAsync(userId);
-                    return Ok(projects);
-                }
+                var projects = await _projectService.GetUserProjectsByUserIdAsync(userId);
+                return Ok(projects);
             }
             catch (Exception ex)
             {
