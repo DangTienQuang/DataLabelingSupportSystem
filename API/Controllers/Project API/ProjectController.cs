@@ -1,4 +1,4 @@
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using Core.DTOs.Requests;
 using Core.DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +22,49 @@ namespace API.Controllers
         {
             _projectService = projectService;
         }
+        /// <summary>
+        /// Retrieves all projects associated with the currently authenticated user.
+        /// </summary>
+        /// <remarks>
+        /// Automatically identifies the user's role from the JWT token:
+        /// - If Manager/Admin: Returns projects managed by them.
+        /// - If Annotator/Reviewer: Returns projects where they have assigned tasks.
+        /// </remarks>
+        /// <returns>A list of projects based on the user's role.</returns>
+        /// <response code="200">Projects retrieved successfully.</response>
+        /// <response code="400">Failed to retrieve projects.</response>
+        /// <response code="401">User is not authenticated.</response>
+        [HttpGet("my-projects")]
+        [Authorize]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ErrorResponse), 400)]
+        [ProducesResponseType(typeof(ErrorResponse), 401)]
+        public async Task<IActionResult> GetMyProjects()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(userRole))
+                return Unauthorized(new ErrorResponse { Message = "Invalid token or session expired." });
+
+            try
+            {
+                if (userRole == "Manager" || userRole == "Admin")
+                {
+                    var projects = await _projectService.GetProjectsByManagerAsync(userId);
+                    return Ok(projects);
+                }
+                else
+                {
+                    var projects = await _projectService.GetAssignedProjectsAsync(userId);
+                    return Ok(projects);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponse { Message = ex.Message });
+            }
+        }
         /// <summary>
         /// Creates a new annotation project.
         /// </summary>
